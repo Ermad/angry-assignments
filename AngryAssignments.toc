@@ -1,0 +1,9 @@
+## Interface: 50400
+## Title: Angry Assignments
+## Author: Ermad
+## Version: @project-version@
+## SavedVariables: AngryAssign_Pages,AngryAssign_State
+
+embeds.xml
+
+Core.lua
