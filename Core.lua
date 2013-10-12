@@ -4,6 +4,9 @@ local libS = LibStub("AceSerializer-3.0")
 local libC = LibStub("LibCompress")
 local libCE = libC:GetAddonEncodeTable()
 
+BINDING_HEADER_AngryAssign = "Angry Assignments"
+BINDING_NAME_AngryAssign_TOGGLE = "Toggle Window"
+
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-timestamp@'
 
@@ -44,6 +47,7 @@ local COMMAND = 1
 local PAGE_Id = 1
 local PAGE_Timestamp = 2
 local PAGE_Name = 3
+local PAGE_Contents = 4
 
 local REQUEST_PAGE_Id = 1
 
@@ -110,6 +114,14 @@ function AngryAssign:ProcessMessage(sender, data)
 			end
 		end
 		if not found then tinsert(versionList, {name = sender, version = ver}) end
+	end
+end
+
+function AngryAssign_Toggle()
+	if AngryAssign.window:IsShown() then 
+		AngryAssign.window:Hide() 
+	else
+		AngryAssign.window:Show() 
 	end
 end
 
@@ -212,6 +224,7 @@ function AngryAssign:CreateWindow()
 	window:SetStatusText("")
 	window:SetLayout("Flow")
 	window:SetStatusTable(AngryAssign_State.window)
+	window:Hide()
 	AngryAssign.window = window
 
 	local tree = AceGUI:Create("TreeGroup")
@@ -383,6 +396,70 @@ function AngryAssign:VersionCheckOutput()
 	self:Print(versionliststr)
 end
 
+local function DragHandle_MouseDown(self) self:GetParent():GetParent():StartSizing("RIGHT") end
+local function DragHandle_MouseUp(self, button) self:GetParent():GetParent():StopMovingOrSizing() end
+local function Mover_MouseDown(self) self:GetParent():StartMoving() end
+local function Mover_MouseUp(self) self:GetParent():StopMovingOrSizing() end
+
+function AngryAssign:CreateDisplay()
+	local frame = CreateFrame("Frame", "AngryAssign_Frame", UIParent)
+	frame:SetPoint("CENTER",0,0)
+	frame:SetWidth(300)
+	frame:SetHeight(1)
+	frame:SetMovable(true)
+	frame:SetResizable(true)
+
+	local mover = CreateFrame("Frame", "AngryAssign_Mover", frame)
+	mover:SetPoint("LEFT",0,0)
+	mover:SetPoint("RIGHT",0,0)
+	mover:SetHeight(16)
+	mover:EnableMouse(true)
+	mover:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background" })
+	mover:SetBackdropColor( 0.616, 0.149, 0.114, 0.9)
+	mover:SetScript("OnMouseDown", Mover_MouseDown)
+	mover:SetScript("OnMouseUp", Mover_MouseUp)
+
+	local label = mover:CreateFontString()
+	label:SetFontObject("GameFontNormal")
+	label:SetJustifyH("CENTER")
+	label:SetPoint("LEFT", 38, 0)
+	label:SetPoint("RIGHT", -38, 0)
+	label:SetText("Angry Assignments")
+
+	local direction = CreateFrame("Button", nil, mover)
+	direction:SetPoint("LEFT", 2, 0)
+	direction:SetWidth(16)
+	direction:SetHeight(16)
+	direction:SetNormalTexture("Interface\\Buttons\\UI-Panel-QuestHideButton")
+	direction:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
+	direction:SetPushedTexture("Interface\\Buttons\\UI-Panel-QuestHideButton")
+	direction:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
+	direction:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight", "ADD")
+
+	local lock = CreateFrame("Button", nil, mover)
+	lock:SetNormalTexture("Interface\\LFGFRAME\\UI-LFG-ICON-LOCK")
+	lock:GetNormalTexture():SetTexCoord(0, 0.71875, 0, 0.875)
+	lock:SetPoint("LEFT", direction, "RIGHT", 4, 0)
+	lock:SetWidth(12)
+	lock:SetHeight(14)
+
+	local drag = CreateFrame("Frame", nil, mover)
+	drag:SetFrameLevel(mover:GetFrameLevel() + 10)
+	drag:SetWidth(16)
+	drag:SetHeight(16)
+	drag:SetPoint("BOTTOMRIGHT", 0, 0)
+	drag:EnableMouse(true)
+	drag:SetScript("OnMouseDown", DragHandle_MouseDown)
+	drag:SetScript("OnMouseUp", DragHandle_MouseUp)
+	drag:SetAlpha(0.5)
+	local tex = drag:CreateTexture(nil, "OVERLAY")
+	tex:SetTexture("Interface\\AddOns\\AngryAssignments\\Textures\\draghandle")
+	tex:SetWidth(16)
+	tex:SetHeight(16)
+	tex:SetBlendMode("ADD")
+	tex:SetPoint("CENTER", drag)
+end
+
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {} } end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
@@ -411,6 +488,7 @@ end
 
 function AngryAssign:OnEnable()
 	self:CreateWindow()
+	self:CreateDisplay()
 
 	self:RegisterComm(comPrefix, "ReceiveMessage")
 	
