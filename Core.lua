@@ -15,14 +15,11 @@ local comPrefix = "AnAss"..protocolVersion
 local warnedOOD = false
 local versionList = {}
 
--- Editing interface
-local currentlySelected
-
 -- Pages Saved Variable Format 
 -- 	AngryAssign_Pages = {
--- 		[Id] = { Id = "1231", Updated = now(), Name = "Name", Contents = "..." },
+-- 		[Id] = { Id = "1231", Updated = time(), Name = "Name", Contents = "..." },
 --		...
--- 	},
+-- 	}
 --
 -- Format for our addon communication
 --
@@ -163,7 +160,6 @@ local function AngryAssign_RenamePage(widget, event, value)
 			OnShow = function(self)
 				self.editBox:SetText(page.Name)
 			end,
-			text = 'Rename page "'.. page.Name ..'" to?',
 			whileDead = true,
 			hasEditBox = true,
 			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
@@ -171,27 +167,30 @@ local function AngryAssign_RenamePage(widget, event, value)
 			preferredIndex = 3
 		}
 	end
+	StaticPopupDialogs[popup_name].text = 'Rename page "'.. page.Name ..'" to?'
+
 	StaticPopup_Show(popup_name)
 end
 
 local function AngryAssign_DeletePage(widget, event, value)
-	local id = AngryAssign:SelectedId()
-	if not id then return end
+	local page = AngryAssign:Get()
+	if not page then return end
 
-	local popup_name = "AngryAssign_DeletePage_"..id
+	local popup_name = "AngryAssign_DeletePage_"..page.Id
 	if StaticPopupDialogs[popup_name] == nil then
 		StaticPopupDialogs[popup_name] = {
 			button1 = OKAY,
 			button2 = CANCEL,
 			OnAccept = function(self)
-				AngryAssign:DeletePage(id)
+				AngryAssign:DeletePage(page.Id)
 			end,
-			text = 'Are you sure you want to delete page "'.. AngryAssign_Pages[id].Name ..'"?',
 			whileDead = true,
 			hideOnEscape = true,
 			preferredIndex = 3
 		}
 	end
+	StaticPopupDialogs[popup_name].text = 'Are you sure you want to delete page "'.. page.Name ..'"?'
+
 	StaticPopup_Show(popup_name)
 end
 
