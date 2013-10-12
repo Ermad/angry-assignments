@@ -13,7 +13,10 @@ local comPrefix = "AnAss"..protocolVersion
 
 -- Used for version tracking
 local warnedOOD = false
-local versionList = {} 
+local versionList = {}
+
+-- Editing interface
+local currentlySelected
 
 -- Pages Saved Variable Format 
 -- 	{
@@ -98,7 +101,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		hash = data[VERSION_GIT_Hash]
 			
 		if localHash ~= nil and hash ~= "dev" and hash ~= localHash and not warnedOOD then 
-			self:Print("Your version of Angrry Assignments is out of date! Download the latest version from www.wowace.com.")
+			self:Print("Your version of Angry Assignments is out of date! Download the latest version from www.wowace.com.")
 			warnedOOD = true
 		end
 
@@ -113,6 +116,97 @@ function AngryAssign:ProcessMessage(sender, data)
 	end
 end
 
+local function AngryAssign_AddPage(widget, event, value)
+	local popup_name = "AngryAssign_AddPage"
+	if StaticPopupDialogs[popup_name] == nil then
+		StaticPopupDialogs[popup_name] = {
+			button1 = OKAY,
+			button2 = CANCEL,
+			OnAccept = function(self)
+				local text = self.editBox:GetText()
+				AngryAssign:CreatePage(text)
+			end,
+			EditBoxOnEnterPressed = function(self)
+				local text = self:GetParent().editBox:GetText()
+				AngryAssign:CreatePage(text)
+				self:GetParent():Hide()
+			end,
+			text = "New page name",
+			hasEditBox = true,
+			whileDead = true,
+			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+			hideOnEscape = true,
+			preferredIndex = 3
+		}
+	end
+	StaticPopup_Show(popup_name)
+end
+
+local function AngryAssign_RenamePage(widget, event, value)
+	local page = AngryAssign:Get()
+	if not page then return end
+
+	local popup_name = "AngryAssign_RenamePage_"..page.Id
+	if StaticPopupDialogs[popup_name] == nil then
+		StaticPopupDialogs[popup_name] = {
+			button1 = OKAY,
+			button2 = CANCEL,
+			OnAccept = function(self)
+				local text = self.editBox:GetText()
+				AngryAssign:RenamePage(id, text)
+			end,
+			EditBoxOnEnterPressed = function(self)
+				local text = self:GetParent().editBox:GetText()
+				AngryAssign:RenamePage(id, text)
+				self:GetParent():Hide()
+			end,
+			OnShow = function(self)
+				self.editBox:SetText(page.Name)
+			end,
+			text = 'Rename page "'.. page.Name ..'" to?',
+			whileDead = true,
+			hasEditBox = true,
+			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+			hideOnEscape = true,
+			preferredIndex = 3
+		}
+	end
+	StaticPopup_Show(popup_name)
+end
+
+local function AngryAssign_DeletePage(widget, event, value)
+	local id = AngryAssign:SelectedId()
+	if not id then return end
+
+	local popup_name = "AngryAssign_DeletePage_"..id
+	if StaticPopupDialogs[popup_name] == nil then
+		StaticPopupDialogs[popup_name] = {
+			button1 = OKAY,
+			button2 = CANCEL,
+			OnAccept = function(self)
+				AngryAssign:DeletePage(id)
+			end,
+			text = 'Are you sure you want to delete page "'.. AngryAssign_Pages[id].Name ..'"?',
+			whileDead = true,
+			hideOnEscape = true,
+			preferredIndex = 3
+		}
+	end
+	StaticPopup_Show(popup_name)
+end
+
+local function AngryAssign_RevertPage(widget, event, value)
+	AngryAssign.text:SetText( AngryAssign_Pages[AngryAssign:SelectedId()].Contents )
+end
+
+local function AngryAssign_TextChanged(widget, event, value)
+
+end
+
+local function AngryAssign_TextEntered(widget, event, value)
+	AngryAssign:UpdateContents(AngryAssign:SelectedId(), value)
+end
+
 function AngryAssign:CreateWindow()
 	local window = AceGUI:Create("Frame")
 	window:SetTitle("Angry Assignments")
@@ -121,20 +215,14 @@ function AngryAssign:CreateWindow()
 	window:SetStatusTable(AngryAssign_State.window)
 	AngryAssign.window = window
 
-	-- tree code from http://www.wowace.com/addons/ace3/pages/ace-gui-3-0-widgets/
-	local treecontents = {
-		{ value = 1, text = "Thok", },
-		{ value = 2, text = "Spoils of Pandaria", },
-		{ value = 3, text = "Sha of Anger", },
-	}
-
 	local tree = AceGUI:Create("TreeGroup")
-	tree:SetTree(treecontents)
+	tree:SetTree( self:GetTree() )
 	tree:SelectByValue(1)
 	tree:SetStatusTable(AngryAssign_State.tree)
 	tree:SetFullWidth(true)
 	tree:SetFullHeight(true)
 	tree:SetLayout("Flow")
+	tree:SetCallback("OnGroupSelected", function(widget, event, value) AngryAssign:UpdateSelected() end)
 	window:AddChild(tree)
 	AngryAssign.tree = tree
 
@@ -142,7 +230,10 @@ function AngryAssign:CreateWindow()
 	text:SetLabel(nil)
 	text:SetFullWidth(true)
 	text:SetFullHeight(true)
+	text:SetCallback("OnTextChanged", AngryAssign_TextChanged)
+	text:SetCallback("OnEnterPressed", AngryAssign_TextEntered)
 	tree:AddChild(text)
+	AngryAssign.text = text
 
 	tree:PauseLayout()
 	local button_display = AceGUI:Create("Button")
@@ -152,6 +243,7 @@ function AngryAssign:CreateWindow()
 	button_display:ClearAllPoints()
 	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 0)
 	tree:AddChild(button_display)
+	AngryAssign.button_display = button_display
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
@@ -160,7 +252,9 @@ function AngryAssign:CreateWindow()
 	button_revert:ClearAllPoints()
 	button_revert:SetDisabled(true)
 	button_revert:SetPoint("BOTTOMLEFT", text.button, "BOTTOMRIGHT", 6, 0)
+	button_revert:SetCallback("OnClick", AngryAssign_RevertPage)
 	tree:AddChild(button_revert)
+	AngryAssign.button_revert = button_revert
 
 	window:PauseLayout()
 	local button_add = AceGUI:Create("Button")
@@ -169,7 +263,9 @@ function AngryAssign:CreateWindow()
 	button_add:SetHeight(19)
 	button_add:ClearAllPoints()
 	button_add:SetPoint("BOTTOMLEFT", window.frame, "BOTTOMLEFT", 17, 18)
+	button_add:SetCallback("OnClick", AngryAssign_AddPage)
 	window:AddChild(button_add)
+	AngryAssign.button_add = button_add
 
 	local button_rename = AceGUI:Create("Button")
 	button_rename:SetText("Rename")
@@ -177,7 +273,9 @@ function AngryAssign:CreateWindow()
 	button_rename:SetHeight(19)
 	button_rename:ClearAllPoints()
 	button_rename:SetPoint("BOTTOMLEFT", button_add.frame, "BOTTOMRIGHT", 5, 0)
+	button_rename:SetCallback("OnClick", AngryAssign_RenamePage)
 	window:AddChild(button_rename)
+	AngryAssign.button_rename = button_rename
 
 	local button_delete = AceGUI:Create("Button")
 	button_delete:SetText("Delete")
@@ -185,7 +283,9 @@ function AngryAssign:CreateWindow()
 	button_delete:SetHeight(19)
 	button_delete:ClearAllPoints()
 	button_delete:SetPoint("BOTTOMLEFT", button_rename.frame, "BOTTOMRIGHT", 5, 0)
+	button_delete:SetCallback("OnClick", AngryAssign_DeletePage)
 	window:AddChild(button_delete)
+	AngryAssign.button_delete = button_delete
 
 	local button_lock = AceGUI:Create("Button")
 	button_lock:SetText("Unlock")
@@ -194,6 +294,85 @@ function AngryAssign:CreateWindow()
 	button_lock:ClearAllPoints()
 	button_lock:SetPoint("BOTTOMRIGHT", window.frame, "BOTTOMRIGHT", -135, 18)
 	window:AddChild(button_lock)
+	AngryAssign.button_lock = button_lock
+
+	self:UpdateSelected()
+end
+
+function AngryAssign:GetTree()
+	local ret = {}
+
+	for _, page in pairs(AngryAssign_Pages) do
+		-- TODO show icon for currently displayed page
+		tinsert(ret, { value = page.Id, text = page.Name })
+
+	end
+
+	return ret
+end
+
+function AngryAssign:UpdateTree()
+	self.tree:SetTree( self:GetTree() )
+end
+
+function AngryAssign:SelectedId()
+	return AngryAssign_State.tree.selected
+end
+
+function AngryAssign:Get(id)
+	if id == nil then id = self:SelectedId() end
+	return AngryAssign_Pages[id]
+end
+
+function AngryAssign:CreatePage(name)
+	local id = math.random(2000000000)
+
+	AngryAssign_Pages[id] = { Id = id, Updated = time(), Name = name, Contents = "" }
+	self:UpdateTree()
+	self.tree:SelectByValue( id )
+end
+
+function AngryAssign:RenamePage(id, name)
+	local page = self:Get(id)
+	if not page then return end
+
+	page.Name = name
+	self:UpdateTree()
+end
+
+function AngryAssign:DeletePage(id)
+	AngryAssign_Pages[id] = nil
+	if self:SelectedId() == id then
+		self.tree:SetSelected(nil)
+		self:UpdateSelected()
+	end
+	self:UpdateTree()
+end
+
+function AngryAssign:UpdateContents(id, value)
+	local page = self:Get(id)
+	if not page then return end
+	page.Contents = value
+end
+
+function AngryAssign:UpdateSelected()
+	local page = AngryAssign_Pages[ self:SelectedId() ]
+	if page then
+		AngryAssign.text:SetText( AngryAssign_Pages[ AngryAssign:SelectedId() ].Contents )
+
+		AngryAssign.button_rename:SetDisabled(false)
+		AngryAssign.button_delete:SetDisabled(false)
+		AngryAssign.button_revert:SetDisabled(false)
+		AngryAssign.button_display:SetDisabled(false)
+		AngryAssign.text:SetDisabled(false)
+	else
+		AngryAssign.text:SetText("")
+		AngryAssign.button_rename:SetDisabled(true)
+		AngryAssign.button_delete:SetDisabled(true)
+		AngryAssign.button_revert:SetDisabled(true)
+		AngryAssign.button_display:SetDisabled(true)
+		AngryAssign.text:SetDisabled(true)
+	end
 end
 
 function AngryAssign:VersionCheckOutput()
@@ -228,11 +407,11 @@ function AngryAssign:OnInitialize()
 	}
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Angry Assignments", options, {"aa"})
-	
-	self:CreateWindow()
 end
 
 function AngryAssign:OnEnable()
+	self:CreateWindow()
+
 	self:RegisterComm(comPrefix, "ReceiveMessage")
 	
 	self:ScheduleTimer("AfterEnable", 5)
