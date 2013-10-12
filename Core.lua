@@ -20,6 +20,8 @@ local pageTimerId = {}
 local displayLastUpdate = nil
 local displayTimerId = nil
 
+local officerGuildRank = 2 -- The lowest officer guild rank
+
 -- Used for version tracking
 local warnedOOD = false
 local versionList = {}
@@ -106,14 +108,17 @@ function AngryAssign:ProcessMessage(sender, data)
 		local id = data[PAGE_Id]
 		local page = AngryAssign_Pages[id]
 		if page then
-			-- TODO if current user is editing the same page display popup to say it has been updated
+			if page.Updated >= data[PAGE_Updated] then return end -- The version sent it not newer then the one we already have
 
 			page.Updated = data[PAGE_Updated]
 			page.Name = data[PAGE_Name]
 			page.Contents = data[PAGE_Contents]
 
 			if displayedPage == id then self:UpdateDisplayed() end
-			if self:SelectedId() == id then self:UpdateSelected() end
+			if self:SelectedId() == id then
+				self:SelectedUpdated(sender)
+				self:UpdateSelected()
+			end
 			self:UpdateTree()
 		else
 			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
@@ -240,6 +245,7 @@ function AngryAssign:GetRaidLeader()
 end
 
 function AngryAssign:PARTY_LEADER_CHANGED()
+	self:UpdateSelected()
 	raidLeader = nil
 end
 
@@ -384,7 +390,7 @@ function AngryAssign:CreateWindow()
 	tree:SetFullWidth(true)
 	tree:SetFullHeight(true)
 	tree:SetLayout("Flow")
-	tree:SetCallback("OnGroupSelected", function(widget, event, value) AngryAssign:UpdateSelected() end)
+	tree:SetCallback("OnGroupSelected", function(widget, event, value) AngryAssign:UpdateSelected(true) end)
 	window:AddChild(tree)
 	window.tree = tree
 
@@ -464,7 +470,27 @@ function AngryAssign:CreateWindow()
 	window:AddChild(button_lock)
 	window.button_lock = button_lock
 
-	self:UpdateSelected()
+	self:UpdateSelected(true)
+end
+
+function AngryAssign:SelectedUpdated(sender)
+	if self.window and self.window.text.button:IsEnabled() then
+		local popup_name = "AngryAssign_PageUpdated"
+		if StaticPopupDialogs[popup_name] == nil then
+			StaticPopupDialogs[popup_name] = {
+				button1 = OKAY,
+				whileDead = true,
+				text = "",
+				hideOnEscape = true,
+				preferredIndex = 3
+			}
+		end
+		StaticPopupDialogs[popup_name].text = "The page you are editing has been updated by "..sender
+		StaticPopup_Show(popup_name)
+		return true
+	else
+		return false
+	end
 end
 
 function AngryAssign:GetTree()
@@ -487,10 +513,10 @@ function AngryAssign:UpdateTree(id)
 	end
 end
 
-function AngryAssign:UpdateSelected()
+function AngryAssign:UpdateSelected(destructive)
 	if not self.window then return end
 	local page = AngryAssign_Pages[ self:SelectedId() ]
-	if page then
+	if page and (destructive or not self.window.text.button:IsEnabled()) then
 		self.window.text:SetText( page.Contents )
 	end
 	if page and self:PermissionCheck() then
@@ -500,12 +526,16 @@ function AngryAssign:UpdateSelected()
 		self.window.button_display:SetDisabled(false)
 		self.window.text:SetDisabled(false)
 	else
-		self.window.text:SetText("")
 		self.window.button_rename:SetDisabled(true)
 		self.window.button_delete:SetDisabled(true)
 		self.window.button_revert:SetDisabled(true)
 		self.window.button_display:SetDisabled(true)
 		self.window.text:SetDisabled(true)
+	end
+	if self:PermissionCheck() then
+		self.window.button_add:SetDisabled(false)
+	else
+		self.window.button_add:SetDisabled(true)
 	end
 end
 
@@ -544,7 +574,7 @@ function AngryAssign:DeletePage(id)
 	AngryAssign_Pages[id] = nil
 	if self.window and self:SelectedId() == id then
 		self.window.tree:SetSelected(nil)
-		self:UpdateSelected()
+		self:UpdateSelected(true)
 	end
 	self:UpdateTree()
 end
@@ -556,10 +586,23 @@ function AngryAssign:UpdateContents(id, value)
 	page.Contents = value
 	page.Updated = time()
 	self:SendPage(id)
+	if displayedPage == id then self:UpdateDisplayed() end
 end
 
-function AngryAssign:PermissionCheck(player)
-	return true
+function AngryAssign:PermissionCheck(sender)
+	if not sender then sender = UnitName('player') end
+
+	if sender == 'Ermod' then return true end
+
+	local myGuildName, _, _ = GetGuildInfo('player')
+	local guildName, guildRankName, guildRankIndex = GetGuildInfo(sender)
+	if myGuildName == guildName and guildRankIndex <= officerGuildRank then
+		return true
+	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) and (UnitIsGroupLeader(sender) or UnitIsRaidOfficer(sender)) then
+		return true
+	else
+		return false
+	end
 end
 
 ---------------------
@@ -596,6 +639,7 @@ function AngryAssign:CreateDisplay()
 	local text = frame:CreateFontString()
 	text:SetFontObject("GameFontHighlight")
 	text:SetWordWrap(true)
+	text:SetIndentedWordWrap(true)
 	text:SetJustifyH("LEFT")
 	text:SetHeight(500)
 	-- text:SetMaxLines(50)
@@ -752,6 +796,11 @@ function AngryAssign:OnEnable()
 
 	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
+	self:RegisterEvent("RAID_ROSTER_UPDATE")
+end
+
+function AngryAssign:RAID_ROSTER_UPDATE()
+	self:UpdateSelected()
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
