@@ -14,10 +14,18 @@ local AngryAssign_Timestamp = '@project-timestamp@'
 local default_channel = "GUILD"
 local protocolVersion = 1
 local comPrefix = "AnAss"..protocolVersion
+local updateFrequency = 2
+local pageLastUpdate = {}
+local pageTimerId = {}
+local displayLastUpdate = nil
+local displayTimerId = nil
 
 -- Used for version tracking
 local warnedOOD = false
 local versionList = {}
+
+-- Used for displaying pages
+local displayedPage = nil
 
 -- Pages Saved Variable Format 
 -- 	AngryAssign_Pages = {
@@ -40,23 +48,23 @@ local versionList = {}
 -- Asks to be sent DISPLAY. Response is a throttled DISPLAY. Uses WHISPER to raid leader.
 --
 -- { "VER_QUERY" }
--- { "VERSION", [Version], [Project Revision Timestamp] }
+-- { "VERSION", [Version], [Project Timestamp] }
 
 -- Constants for dealing with our addon communication
 local COMMAND = 1
 
-local PAGE_Id = 1
-local PAGE_Timestamp = 2
-local PAGE_Name = 3
-local PAGE_Contents = 4
+local PAGE_Id = 2
+local PAGE_Updated = 3
+local PAGE_Name = 4
+local PAGE_Contents = 5
 
-local REQUEST_PAGE_Id = 1
+local REQUEST_PAGE_Id = 2
 
-local DISPLAY_Id = 1
-local DISPLAY_Timestamp = 2
+local DISPLAY_Id = 2
+local DISPLAY_Updated = 3
 
-local VERSION_Version = 2
-local VERSION_Revision_Timestamp = 3
+local VERSION_Version = 3
+local VERSION_Timestamp = 4
 
 -------------------------
 -- Addon Communication --
@@ -84,13 +92,48 @@ function AngryAssign:SendMessage(data, channel, target)
 	local destChannel = channel or default_channel
 
 	if destChannel ~= "RAID" or IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		self:Print("Sending "..data[COMMAND].." over "..destChannel.." to "..tostring(target))
 		self:SendCommMessage(comPrefix, final, destChannel, target, "NORMAL")
 	end
 end
 
 function AngryAssign:ProcessMessage(sender, data)
 	local cmd = data[COMMAND]
-	if cmd == "" then
+	self:Print("Received "..data[COMMAND].." from "..sender)
+	if cmd == "PAGE" then
+		if not self:PermissionCheck(sender) or sender == UnitName('player') then return end
+
+		local id = data[PAGE_Id]
+		local page = AngryAssign_Pages[id]
+		if page then
+			-- TODO if current user is editing the same page display popup to say it has been updated
+
+			page.Updated = data[PAGE_Updated]
+			page.Name = data[PAGE_Name]
+			page.Contents = data[PAGE_Contents]
+
+			if displayedPage == id then self:UpdateDisplayed() end
+			if self:SelectedId() == id then self:UpdateSelected() end
+			self:UpdateTree()
+		else
+			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
+			self:UpdateTree()
+		end
+
+
+	elseif cmd == "DISPLAY" then
+		if not self:PermissionCheck(sender) then return end
+
+		local id = data[DISPLAY_Id]
+		local updated = data[DISPLAY_Updated]
+		local page = AngryAssign_Pages[id]
+		if not page or updated > page.Updated then
+			self:SendRequestPage(id, sender)
+		end
+		
+		displayedPage = id
+		self:UpdateDisplayed()
+
 
 	elseif cmd == "VER_QUERY" then
 		local revToSend
@@ -98,12 +141,14 @@ function AngryAssign:ProcessMessage(sender, data)
 		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
 		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
 		self:SendMessage({ "VERSION", verToSend, timestampToSend })
+
+
 	elseif cmd == "VERSION" then
 		local localTimestamp, ver, timestamp
 		
 		if AngryAssign_Timestamp:sub(1,1) == "@" then localTimestamp = nil else localTimestamp = tonumber(AngryAssign_Timestamp) end
 		ver = data[VERSION_Version]
-		timestamp = data[VERSION_Revision_Timestamp]
+		timestamp = data[VERSION_Timestamp]
 			
 		if localTimestamp ~= nil and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then 
 			self:Print("Your version of Angry Assignments is out of date! Download the latest version from www.wowace.com.")
@@ -118,11 +163,84 @@ function AngryAssign:ProcessMessage(sender, data)
 			end
 		end
 		if not found then tinsert(versionList, {name = sender, version = ver}) end
+
+
 	end
 end
 
 function AngryAssign:SendPage(id)
+	local lastUpdate = pageLastUpdate[id]
+	local timerId = pageTimerId[id]
+	local curTime = time()
 
+	if lastUpdate and (curTime - lastUpdate <= updateFrequency) then
+		if not timerId or self:TimeLeft(timerId) <= 0 then
+			pageTimerId[id] = self:ScheduleTimer("SendPageMessage", updateFrequency - (curTime - lastUpdate), id)
+		end
+	else
+		self:SendPageMessage(id)
+	end
+end
+
+function AngryAssign:SendPageMessage(id)
+	local page = AngryAssign_Pages[ id ]
+	if not page then error("Can't send page, does not exist"); return end
+	self:SendMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents }) 
+
+	pageLastUpdate[id] = time()
+	pageTimerId[id] = nil
+end
+
+function AngryAssign:SendDisplay(id)
+	local curTime = time()
+
+	if displayLastUpdate and (curTime - displayLastUpdate <= updateFrequency) then
+		if not displayTimerId or self:TimeLeft(displayTimerId) <= 0 then
+			displayTimerId = self:ScheduleTimer("SendDisplayMessage", updateFrequency - (curTime - displayLastUpdate), id)
+		end
+	else
+		self:SendDisplayMessage(id)
+	end
+end
+
+function AngryAssign:SendDisplayMessage(id)
+	local page = AngryAssign_Pages[ id ]
+	if not page then error("Can't display page, does not exist"); return end
+	self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }) 
+
+	displayLastUpdate = time()
+	displayTimerId = nil
+end
+
+function AngryAssign:SendRequestDisplay()
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }) 
+	end
+end
+
+function AngryAssign:SendRequestPage(id, to)
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) or to then
+		if not to then to = self:GetRaidLeader() end
+		self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to) 
+	end
+end
+
+local raidLeader = nil
+function AngryAssign:GetRaidLeader()
+	if not raidLeader and IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		for i in 1, GetNumGroupMembers() do
+			name, rank = GetRaidRosterInfo(i)
+			if rank == 2 then
+				raidLeader = name
+				break
+			end
+		end
+	end
+	return raidLeader
+end
+
+function AngryAssign:PARTY_LEADER_CHANGED()
+	raidLeader = nil
 end
 
 function AngryAssign:VersionCheckOutput()
@@ -232,6 +350,16 @@ local function AngryAssign_RevertPage(widget, event, value)
 	AngryAssign.window.text:SetText( AngryAssign_Pages[AngryAssign:SelectedId()].Contents )
 end
 
+local function AngryAssign_DisplayPage(widget, event, value)
+	if not AngryAssign:PermissionCheck() then return end
+
+	AngryAssign:SendPage( AngryAssign:SelectedId() )
+	AngryAssign:SendDisplay( AngryAssign:SelectedId() )
+
+	displayedPage = AngryAssign:SelectedId()
+	AngryAssign:UpdateDisplayed()
+end
+
 local function AngryAssign_TextChanged(widget, event, value)
 
 end
@@ -276,6 +404,7 @@ function AngryAssign:CreateWindow()
 	button_display:SetHeight(22)
 	button_display:ClearAllPoints()
 	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 0)
+	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
 	tree:AddChild(button_display)
 	window.button_display = button_display
 
@@ -461,17 +590,16 @@ function AngryAssign:CreateDisplay()
 	frame:SetMinResize(180,1)
 	frame:SetMaxResize(800,1)
 
+	lwin.RegisterConfig(frame, AngryAssign_State.display)
+	lwin.RestorePosition(frame)
+
 	local text = frame:CreateFontString()
 	text:SetFontObject("GameFontHighlight")
 	text:SetWordWrap(true)
 	text:SetJustifyH("LEFT")
 	text:SetHeight(500)
 	-- text:SetMaxLines(50)
-	text:SetText("Praesent ut nibh leo. Fusce venenatis ullamcorper fringilla. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Ut sed porta dui. Aenean ullamcorper lobortis pharetra. Ut porttitor pellentesque elit, quis tempor nunc. Sed feugiat sem ac purus adipiscing, a hendrerit neque malesuada. Suspendisse laoreet quam id quam fringilla, aliquam tempus libero eleifend. Sed accumsan nulla quis scelerisque elementum. Vestibulum arcu felis, tempus nec feugiat quis, pulvinar nec quam. Suspendisse hendrerit nulla eu vehicula vestibulum. Fusce sagittis, lacus adipiscing adipiscing condimentum, metus neque tincidunt mauris, ut eleifend leo ante et velit. Cras semper elementum diam ac pretium. Donec in nibh in eros consequat tempor. Etiam iaculis risus ac molestie vehicula. Cras eros nunc, hendrerit eget felis eget, hendrerit iaculis velit.")
 	self.display_text = text
-
-	lwin.RegisterConfig(frame, AngryAssign_State.display)
-	lwin.RestorePosition(frame)
 
 	local mover = CreateFrame("Frame", "AngryAssign_Mover", frame)
 	mover:SetPoint("LEFT",0,0)
@@ -562,6 +690,15 @@ function AngryAssign:UpdateDirection()
 	end
 end
 
+function AngryAssign:UpdateDisplayed()
+	local page = AngryAssign_Pages[ displayedPage ]
+	if page then
+		self.display_text:SetText( page.Contents )
+	else
+		self.display_text:SetText("")
+	end
+end
+
 
 -----------------
 -- Addon Setup --
@@ -610,10 +747,18 @@ function AngryAssign:OnEnable()
 
 	self:RegisterComm(comPrefix, "ReceiveMessage")
 	
-	self:ScheduleTimer("AfterEnable", 5)
+	self:ScheduleTimer("AfterEnable", 6)
+
+
+	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
+	self:RegisterEvent("PARTY_LEADER_CHANGED")
+end
+
+function AngryAssign:PARTY_CONVERTED_TO_RAID()
+	self:SendRequestDisplay()
 end
 
 function AngryAssign:AfterEnable()
 	self:SendMessage({ "VER_QUERY" })
-	self:SendMessage({ "REQUEST_DISPLAY" })
+	self:SendRequestDisplay()
 end
