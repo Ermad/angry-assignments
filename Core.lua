@@ -5,7 +5,7 @@ local libC = LibStub("LibCompress")
 local libCE = libC:GetAddonEncodeTable()
 
 local AngryAssign_Version = '@project-version@'
-local AngryAssign_Hash = '@project-abbreviated-hash@'
+local AngryAssign_Timestamp = '@project-timestamp@'
 
 local default_channel = "GUILD"
 local protocolVersion = 1
@@ -30,16 +30,16 @@ local currentlySelected
 -- Sent when a page is updated. Id is a random unique value. Checks that sender is Officer or Promoted. Uses GUILD.
 --
 -- { "REQUEST_PAGE", [Id] }
--- Asks to be sent PAGE with give Id. Response is a throttled PAGE. Uses WHISPER to raid leader.
+-- Asks to be sent PAGE with given Id. Response is a throttled PAGE. Uses WHISPER to raid leader.
 --
 -- { "DISPLAY", [Id], [Last Update Timestamp] }
--- Raid leader / promoted sends out when new page is to be displayed. Checks that sender is Officer or Promoted. Uses RAId.
+-- Raid leader / promoted sends out when new page is to be displayed. Checks that sender is Officer or Promoted. Uses RAID.
 --
 -- { "REQUEST_DISPLAY" }
 -- Asks to be sent DISPLAY. Response is a throttled DISPLAY. Uses WHISPER to raid leader.
 --
 -- { "VER_QUERY" }
--- { "VERSION", [Version], [GIT Revision Hash] }
+-- { "VERSION", [Version], [Project Revision Timestamp] }
 
 -- Constants for dealing with our addon communication
 local COMMAND = 1
@@ -54,7 +54,7 @@ local DISPLAY_Id = 1
 local DISPLAY_Timestamp = 2
 
 local VERSION_Version = 2
-local VERSION_GIT_Hash = 3
+local VERSION_Revision_Timestamp = 3
 
 
 function AngryAssign:ReceiveMessage(prefix, data, channel, sender)
@@ -91,16 +91,16 @@ function AngryAssign:ProcessMessage(sender, data)
 		local revToSend
 		local verToSend
 		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
-		if AngryAssign_Hash:sub(1,1) == "@" then hashToSend = "dev" else hashToSend = AngryAssign_Hash end
-		self:SendMessage({ "VERSION", verToSend, hashToSend })
+		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
+		self:SendMessage({ "VERSION", verToSend, timestampToSend })
 	elseif cmd == "VERSION" then
-		local localHash, ver, hash
+		local localTimestamp, ver, timestamp
 		
-		if AngryAssign_Hash:sub(1,1) == "@" then localHash = nil else localHash = AngryAssign_Hash end
+		if AngryAssign_Timestamp:sub(1,1) == "@" then localTimestamp = nil else localTimestamp = tonumber(AngryAssign_Timestamp) end
 		ver = data[VERSION_Version]
-		hash = data[VERSION_GIT_Hash]
+		timestamp = data[VERSION_Revision_Timestamp]
 			
-		if localHash ~= nil and hash ~= "dev" and hash ~= localHash and not warnedOOD then 
+		if localTimestamp ~= nil and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then 
 			self:Print("Your version of Angry Assignments is out of date! Download the latest version from www.wowace.com.")
 			warnedOOD = true
 		end
