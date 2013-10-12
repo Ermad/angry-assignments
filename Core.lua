@@ -92,14 +92,14 @@ function AngryAssign:SendMessage(data, channel, target)
 	local destChannel = channel or default_channel
 
 	if destChannel ~= "RAID" or IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		self:Print("Sending "..data[COMMAND].." over "..destChannel.." to "..tostring(target))
+		-- self:Print("Sending "..data[COMMAND].." over "..destChannel.." to "..tostring(target))
 		self:SendCommMessage(comPrefix, final, destChannel, target, "NORMAL")
 	end
 end
 
 function AngryAssign:ProcessMessage(sender, data)
 	local cmd = data[COMMAND]
-	self:Print("Received "..data[COMMAND].." from "..sender)
+	-- self:Print("Received "..data[COMMAND].." from "..sender)
 	if cmd == "PAGE" then
 		if not self:PermissionCheck(sender) or sender == UnitName('player') then return end
 
@@ -214,7 +214,7 @@ end
 
 function AngryAssign:SendRequestDisplay()
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }) 
+		self:SendMessage({ "REQUEST_DISPLAY" }) 
 	end
 end
 
@@ -542,8 +542,8 @@ end
 function AngryAssign:DeletePage(id)
 	if not self:PermissionCheck() then return end
 	AngryAssign_Pages[id] = nil
-	if self:SelectedId() == id then
-		self.tree:SetSelected(nil)
+	if self.window and self:SelectedId() == id then
+		self.window.tree:SetSelected(nil)
 		self:UpdateSelected()
 	end
 	self:UpdateTree()
