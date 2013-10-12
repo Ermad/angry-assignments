@@ -2,6 +2,7 @@ local AngryAssign = LibStub("AceAddon-3.0"):NewAddon("AngryAssignments", "AceCon
 local AceGUI = LibStub("AceGUI-3.0")
 local libS = LibStub("AceSerializer-3.0")
 local libC = LibStub("LibCompress")
+local lwin = LibStub("LibWindow-1.1")
 local libCE = libC:GetAddonEncodeTable()
 
 BINDING_HEADER_AngryAssign = "Angry Assignments"
@@ -57,6 +58,9 @@ local DISPLAY_Timestamp = 2
 local VERSION_Version = 2
 local VERSION_Revision_Timestamp = 3
 
+-------------------------
+-- Addon Communication --
+-------------------------
 
 function AngryAssign:ReceiveMessage(prefix, data, channel, sender)
 	if prefix ~= comPrefix then return end
@@ -117,7 +121,24 @@ function AngryAssign:ProcessMessage(sender, data)
 	end
 end
 
+function AngryAssign:SendPage(id)
+
+end
+
+function AngryAssign:VersionCheckOutput()
+	local versionliststr = ""
+	for i,v in pairs(versionList) do
+		versionliststr = versionliststr..v["name"].."-|cFFFF0000"..v["version"].."|r "
+	end
+	self:Print(versionliststr)
+end
+
+--------------------------
+-- Editing Pages Window --
+--------------------------
+
 function AngryAssign_Toggle()
+	if not AngryAssign.window then AngryAssign:CreateWindow() end
 	if AngryAssign.window:IsShown() then 
 		AngryAssign.window:Hide() 
 	else
@@ -207,7 +228,8 @@ local function AngryAssign_DeletePage(widget, event, value)
 end
 
 local function AngryAssign_RevertPage(widget, event, value)
-	AngryAssign.text:SetText( AngryAssign_Pages[AngryAssign:SelectedId()].Contents )
+	if not AngryAssign.window then return end
+	AngryAssign.window.text:SetText( AngryAssign_Pages[AngryAssign:SelectedId()].Contents )
 end
 
 local function AngryAssign_TextChanged(widget, event, value)
@@ -236,7 +258,7 @@ function AngryAssign:CreateWindow()
 	tree:SetLayout("Flow")
 	tree:SetCallback("OnGroupSelected", function(widget, event, value) AngryAssign:UpdateSelected() end)
 	window:AddChild(tree)
-	AngryAssign.tree = tree
+	window.tree = tree
 
 	local text = AceGUI:Create("MultiLineEditBox")
 	text:SetLabel(nil)
@@ -245,7 +267,7 @@ function AngryAssign:CreateWindow()
 	text:SetCallback("OnTextChanged", AngryAssign_TextChanged)
 	text:SetCallback("OnEnterPressed", AngryAssign_TextEntered)
 	tree:AddChild(text)
-	AngryAssign.text = text
+	window.text = text
 
 	tree:PauseLayout()
 	local button_display = AceGUI:Create("Button")
@@ -255,7 +277,7 @@ function AngryAssign:CreateWindow()
 	button_display:ClearAllPoints()
 	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 0)
 	tree:AddChild(button_display)
-	AngryAssign.button_display = button_display
+	window.button_display = button_display
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
@@ -266,7 +288,7 @@ function AngryAssign:CreateWindow()
 	button_revert:SetPoint("BOTTOMLEFT", text.button, "BOTTOMRIGHT", 6, 0)
 	button_revert:SetCallback("OnClick", AngryAssign_RevertPage)
 	tree:AddChild(button_revert)
-	AngryAssign.button_revert = button_revert
+	window.button_revert = button_revert
 
 	window:PauseLayout()
 	local button_add = AceGUI:Create("Button")
@@ -277,7 +299,7 @@ function AngryAssign:CreateWindow()
 	button_add:SetPoint("BOTTOMLEFT", window.frame, "BOTTOMLEFT", 17, 18)
 	button_add:SetCallback("OnClick", AngryAssign_AddPage)
 	window:AddChild(button_add)
-	AngryAssign.button_add = button_add
+	window.button_add = button_add
 
 	local button_rename = AceGUI:Create("Button")
 	button_rename:SetText("Rename")
@@ -287,7 +309,7 @@ function AngryAssign:CreateWindow()
 	button_rename:SetPoint("BOTTOMLEFT", button_add.frame, "BOTTOMRIGHT", 5, 0)
 	button_rename:SetCallback("OnClick", AngryAssign_RenamePage)
 	window:AddChild(button_rename)
-	AngryAssign.button_rename = button_rename
+	window.button_rename = button_rename
 
 	local button_delete = AceGUI:Create("Button")
 	button_delete:SetText("Delete")
@@ -297,16 +319,21 @@ function AngryAssign:CreateWindow()
 	button_delete:SetPoint("BOTTOMLEFT", button_rename.frame, "BOTTOMRIGHT", 5, 0)
 	button_delete:SetCallback("OnClick", AngryAssign_DeletePage)
 	window:AddChild(button_delete)
-	AngryAssign.button_delete = button_delete
+	window.button_delete = button_delete
 
 	local button_lock = AceGUI:Create("Button")
-	button_lock:SetText("Unlock")
+	if AngryAssign_State.locked then
+		button_lock:SetText("Unlock")
+	else
+		button_lock:SetText("Lock")
+	end
 	button_lock:SetWidth(70)
 	button_lock:SetHeight(19)
 	button_lock:ClearAllPoints()
 	button_lock:SetPoint("BOTTOMRIGHT", window.frame, "BOTTOMRIGHT", -135, 18)
+	button_lock:SetCallback("OnClick", function() AngryAssign:ToggleLock() end)
 	window:AddChild(button_lock)
-	AngryAssign.button_lock = button_lock
+	window.button_lock = button_lock
 
 	self:UpdateSelected()
 end
@@ -323,9 +350,39 @@ function AngryAssign:GetTree()
 	return ret
 end
 
-function AngryAssign:UpdateTree()
-	self.tree:SetTree( self:GetTree() )
+function AngryAssign:UpdateTree(id)
+	if not self.window then return end
+	self.window.tree:SetTree( self:GetTree() )
+	if id then
+		self.window.tree:SelectByValue( id )
+	end
 end
+
+function AngryAssign:UpdateSelected()
+	if not self.window then return end
+	local page = AngryAssign_Pages[ self:SelectedId() ]
+	if page then
+		self.window.text:SetText( page.Contents )
+	end
+	if page and self:PermissionCheck() then
+		self.window.button_rename:SetDisabled(false)
+		self.window.button_delete:SetDisabled(false)
+		self.window.button_revert:SetDisabled(false)
+		self.window.button_display:SetDisabled(false)
+		self.window.text:SetDisabled(false)
+	else
+		self.window.text:SetText("")
+		self.window.button_rename:SetDisabled(true)
+		self.window.button_delete:SetDisabled(true)
+		self.window.button_revert:SetDisabled(true)
+		self.window.button_display:SetDisabled(true)
+		self.window.text:SetDisabled(true)
+	end
+end
+
+----------------------------------
+-- Performing changes functions --
+----------------------------------
 
 function AngryAssign:SelectedId()
 	return AngryAssign_State.tree.selected
@@ -337,22 +394,24 @@ function AngryAssign:Get(id)
 end
 
 function AngryAssign:CreatePage(name)
+	if not self:PermissionCheck() then return end
 	local id = math.random(2000000000)
 
 	AngryAssign_Pages[id] = { Id = id, Updated = time(), Name = name, Contents = "" }
-	self:UpdateTree()
-	self.tree:SelectByValue( id )
+	self:UpdateTree(id)
+	self:SendPage(id)
 end
 
 function AngryAssign:RenamePage(id, name)
 	local page = self:Get(id)
-	if not page then return end
+	if not page or not self:PermissionCheck() then return end
 
 	page.Name = name
 	self:UpdateTree()
 end
 
 function AngryAssign:DeletePage(id)
+	if not self:PermissionCheck() then return end
 	AngryAssign_Pages[id] = nil
 	if self:SelectedId() == id then
 		self.tree:SetSelected(nil)
@@ -362,52 +421,57 @@ function AngryAssign:DeletePage(id)
 end
 
 function AngryAssign:UpdateContents(id, value)
+	if not self:PermissionCheck() then return end
 	local page = self:Get(id)
 	if not page then return end
 	page.Contents = value
 	page.Updated = time()
+	self:SendPage(id)
 end
 
-function AngryAssign:UpdateSelected()
-	local page = AngryAssign_Pages[ self:SelectedId() ]
-	if page then
-		AngryAssign.text:SetText( AngryAssign_Pages[ AngryAssign:SelectedId() ].Contents )
-
-		AngryAssign.button_rename:SetDisabled(false)
-		AngryAssign.button_delete:SetDisabled(false)
-		AngryAssign.button_revert:SetDisabled(false)
-		AngryAssign.button_display:SetDisabled(false)
-		AngryAssign.text:SetDisabled(false)
-	else
-		AngryAssign.text:SetText("")
-		AngryAssign.button_rename:SetDisabled(true)
-		AngryAssign.button_delete:SetDisabled(true)
-		AngryAssign.button_revert:SetDisabled(true)
-		AngryAssign.button_display:SetDisabled(true)
-		AngryAssign.text:SetDisabled(true)
-	end
+function AngryAssign:PermissionCheck(player)
+	return true
 end
 
-function AngryAssign:VersionCheckOutput()
-	local versionliststr = ""
-	for i,v in pairs(versionList) do
-		versionliststr = versionliststr..v["name"].."-|cFFFF0000"..v["version"].."|r "
-	end
-	self:Print(versionliststr)
-end
+---------------------
+-- Displaying Page --
+---------------------
 
-local function DragHandle_MouseDown(self) self:GetParent():GetParent():StartSizing("RIGHT") end
-local function DragHandle_MouseUp(self, button) self:GetParent():GetParent():StopMovingOrSizing() end
-local function Mover_MouseDown(self) self:GetParent():StartMoving() end
-local function Mover_MouseUp(self) self:GetParent():StopMovingOrSizing() end
+local function DragHandle_MouseDown(frame) frame:GetParent():GetParent():StartSizing("RIGHT") end
+local function DragHandle_MouseUp(frame)
+	local display = frame:GetParent():GetParent()
+	display:StopMovingOrSizing()
+	AngryAssign_State.display.width = display:GetWidth()
+	lwin.SavePosition(display)
+end
+local function Mover_MouseDown(frame) frame:GetParent():StartMoving() end
+local function Mover_MouseUp(frame)
+	local display = frame:GetParent()
+	display:StopMovingOrSizing()
+	lwin.SavePosition(display)
+end
 
 function AngryAssign:CreateDisplay()
 	local frame = CreateFrame("Frame", "AngryAssign_Frame", UIParent)
 	frame:SetPoint("CENTER",0,0)
-	frame:SetWidth(300)
+	frame:SetWidth(AngryAssign_State.display.width or 300)
 	frame:SetHeight(1)
 	frame:SetMovable(true)
 	frame:SetResizable(true)
+	frame:SetMinResize(180,1)
+	frame:SetMaxResize(800,1)
+
+	local text = frame:CreateFontString()
+	text:SetFontObject("GameFontHighlight")
+	text:SetWordWrap(true)
+	text:SetJustifyH("LEFT")
+	text:SetHeight(500)
+	-- text:SetMaxLines(50)
+	text:SetText("Praesent ut nibh leo. Fusce venenatis ullamcorper fringilla. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Ut sed porta dui. Aenean ullamcorper lobortis pharetra. Ut porttitor pellentesque elit, quis tempor nunc. Sed feugiat sem ac purus adipiscing, a hendrerit neque malesuada. Suspendisse laoreet quam id quam fringilla, aliquam tempus libero eleifend. Sed accumsan nulla quis scelerisque elementum. Vestibulum arcu felis, tempus nec feugiat quis, pulvinar nec quam. Suspendisse hendrerit nulla eu vehicula vestibulum. Fusce sagittis, lacus adipiscing adipiscing condimentum, metus neque tincidunt mauris, ut eleifend leo ante et velit. Cras semper elementum diam ac pretium. Donec in nibh in eros consequat tempor. Etiam iaculis risus ac molestie vehicula. Cras eros nunc, hendrerit eget felis eget, hendrerit iaculis velit.")
+	self.display_text = text
+
+	lwin.RegisterConfig(frame, AngryAssign_State.display)
+	lwin.RestorePosition(frame)
 
 	local mover = CreateFrame("Frame", "AngryAssign_Mover", frame)
 	mover:SetPoint("LEFT",0,0)
@@ -418,6 +482,8 @@ function AngryAssign:CreateDisplay()
 	mover:SetBackdropColor( 0.616, 0.149, 0.114, 0.9)
 	mover:SetScript("OnMouseDown", Mover_MouseDown)
 	mover:SetScript("OnMouseUp", Mover_MouseUp)
+	self.mover = mover
+	if AngryAssign_State.locked then mover:Hide() end
 
 	local label = mover:CreateFontString()
 	label:SetFontObject("GameFontNormal")
@@ -431,10 +497,11 @@ function AngryAssign:CreateDisplay()
 	direction:SetWidth(16)
 	direction:SetHeight(16)
 	direction:SetNormalTexture("Interface\\Buttons\\UI-Panel-QuestHideButton")
-	direction:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 	direction:SetPushedTexture("Interface\\Buttons\\UI-Panel-QuestHideButton")
-	direction:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
 	direction:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight", "ADD")
+	direction:SetScript("OnClick", function() AngryAssign:ToggleDirection() end)
+	self.direction_button = direction
+	self:UpdateDirection()
 
 	local lock = CreateFrame("Button", nil, mover)
 	lock:SetNormalTexture("Interface\\LFGFRAME\\UI-LFG-ICON-LOCK")
@@ -442,6 +509,7 @@ function AngryAssign:CreateDisplay()
 	lock:SetPoint("LEFT", direction, "RIGHT", 4, 0)
 	lock:SetWidth(12)
 	lock:SetHeight(14)
+	lock:SetScript("OnClick", function() AngryAssign:ToggleLock() end)
 
 	local drag = CreateFrame("Frame", nil, mover)
 	drag:SetFrameLevel(mover:GetFrameLevel() + 10)
@@ -452,16 +520,55 @@ function AngryAssign:CreateDisplay()
 	drag:SetScript("OnMouseDown", DragHandle_MouseDown)
 	drag:SetScript("OnMouseUp", DragHandle_MouseUp)
 	drag:SetAlpha(0.5)
-	local tex = drag:CreateTexture(nil, "OVERLAY")
-	tex:SetTexture("Interface\\AddOns\\AngryAssignments\\Textures\\draghandle")
-	tex:SetWidth(16)
-	tex:SetHeight(16)
-	tex:SetBlendMode("ADD")
-	tex:SetPoint("CENTER", drag)
+	local dragtex = drag:CreateTexture(nil, "OVERLAY")
+	dragtex:SetTexture("Interface\\AddOns\\AngryAssignments\\Textures\\draghandle")
+	dragtex:SetWidth(16)
+	dragtex:SetHeight(16)
+	dragtex:SetBlendMode("ADD")
+	dragtex:SetPoint("CENTER", drag)
 end
 
+function AngryAssign:ToggleLock()
+	AngryAssign_State.locked = not AngryAssign_State.locked
+	if AngryAssign_State.locked then
+		self.mover:Hide()
+		if AngryAssign.window then AngryAssign.window.button_lock:SetText("Unlock") end
+	else
+		self.mover:Show()
+		if AngryAssign.window then AngryAssign.window.button_lock:SetText("Lock") end
+	end
+end
+
+function AngryAssign:ToggleDirection()
+	AngryAssign_State.directionUp = not AngryAssign_State.directionUp
+	self:UpdateDirection()
+end
+
+function AngryAssign:UpdateDirection()
+	if AngryAssign_State.directionUp then
+		self.display_text:ClearAllPoints()
+		self.display_text:SetPoint("BOTTOMLEFT", 0, 8)
+		self.display_text:SetPoint("RIGHT", 0, 0)
+		self.display_text:SetJustifyV("BOTTOM")
+		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
+		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
+	else
+		self.display_text:ClearAllPoints()
+		self.display_text:SetPoint("TOPLEFT", 0, -8)
+		self.display_text:SetPoint("RIGHT", 0, 0)
+		self.display_text:SetJustifyV("TOP")
+		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
+		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
+	end
+end
+
+
+-----------------
+-- Addon Setup --
+-----------------
+
 function AngryAssign:OnInitialize()
-	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {} } end
+	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, locked = false, directionUp = false } end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 
 	local options = {
@@ -469,6 +576,18 @@ function AngryAssign:OnInitialize()
 		handler = AngryAssign,
 		type = "group",
 		args = {
+			toggle = {
+				type = "execute",
+				name = "Toggle Window",
+				desc = "Shows/hides the main window (also available in game keybindings)",
+				func = function() AngryAssign_Toggle() end
+			},
+			lock = {
+				type = "execute",
+				name = "Toggle Display Lock",
+				desc = "Shows/hides the display mover (also available in game keybindings)",
+				func = function() AngryAssign:ToggleLock() end
+			},
 			version = {
 				type = "execute",
 				name = "Get Versions",
@@ -487,7 +606,6 @@ function AngryAssign:OnInitialize()
 end
 
 function AngryAssign:OnEnable()
-	self:CreateWindow()
 	self:CreateDisplay()
 
 	self:RegisterComm(comPrefix, "ReceiveMessage")

@@ -33,6 +33,9 @@ externals:
 	libs/CallbackHandler-1.0:
 		url: svn://svn.wowace.com/wow/callbackhandler/mainline/trunk/CallbackHandler-1.0
 		tag: latest
+	libs/LibWindow-1.1:
+		url: svn://svn.wowace.com/wow/libwindow-1-1/mainline/trunk
+		tag: latest
 	libs/LibStub:
 		url: svn://svn.wowace.com/wow/libstub/mainline/trunk
 		tag: latest
