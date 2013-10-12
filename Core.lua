@@ -19,7 +19,7 @@ local versionList = {}
 local currentlySelected
 
 -- Pages Saved Variable Format 
--- 	{
+-- 	AngryAssign_Pages = {
 -- 		[Id] = { Id = "1231", Updated = now(), Name = "Name", Contents = "..." },
 --		...
 -- 	},
@@ -353,6 +353,7 @@ function AngryAssign:UpdateContents(id, value)
 	local page = self:Get(id)
 	if not page then return end
 	page.Contents = value
+	page.Updated = time()
 end
 
 function AngryAssign:UpdateSelected()
