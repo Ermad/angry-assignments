@@ -6,7 +6,8 @@ local lwin = LibStub("LibWindow-1.1")
 local libCE = libC:GetAddonEncodeTable()
 
 BINDING_HEADER_AngryAssign = "Angry Assignments"
-BINDING_NAME_AngryAssign_TOGGLE = "Toggle Window"
+BINDING_NAME_AngryAssign_WINDOW = "Toggle Edit Window"
+BINDING_NAME_AngryAssign_LOCK = "Toggle Display Lock"
 
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-timestamp@'
@@ -114,7 +115,6 @@ function AngryAssign:ProcessMessage(sender, data)
 			page.Name = data[PAGE_Name]
 			page.Contents = data[PAGE_Contents]
 
-			if displayedPage == id then self:UpdateDisplayed() end
 			if self:SelectedId() == id then
 				self:SelectedUpdated(sender)
 				self:UpdateSelected()
@@ -124,6 +124,7 @@ function AngryAssign:ProcessMessage(sender, data)
 			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
 			self:UpdateTree()
 		end
+		if displayedPage == id then self:UpdateDisplayed() end
 
 
 	elseif cmd == "DISPLAY" then
@@ -138,6 +139,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		
 		displayedPage = id
 		self:UpdateDisplayed()
+		self:UpdateTree()
 
 
 	elseif cmd == "VER_QUERY" then
@@ -244,11 +246,6 @@ function AngryAssign:GetRaidLeader()
 	return raidLeader
 end
 
-function AngryAssign:PARTY_LEADER_CHANGED()
-	self:UpdateSelected()
-	raidLeader = nil
-end
-
 function AngryAssign:VersionCheckOutput()
 	local versionliststr = ""
 	for i,v in pairs(versionList) do
@@ -261,13 +258,17 @@ end
 -- Editing Pages Window --
 --------------------------
 
-function AngryAssign_Toggle()
+function AngryAssign_ToggleWindow()
 	if not AngryAssign.window then AngryAssign:CreateWindow() end
 	if AngryAssign.window:IsShown() then 
 		AngryAssign.window:Hide() 
 	else
 		AngryAssign.window:Show() 
 	end
+end
+
+function AngryAssign_ToggleLock()
+	AngryAssign:ToggleLock()
 end
 
 local function AngryAssign_AddPage(widget, event, value)
@@ -497,9 +498,11 @@ function AngryAssign:GetTree()
 	local ret = {}
 
 	for _, page in pairs(AngryAssign_Pages) do
-		-- TODO show icon for currently displayed page
-		tinsert(ret, { value = page.Id, text = page.Name })
-
+		if page.Id == displayedPage then
+			tinsert(ret, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
+		else
+			tinsert(ret, { value = page.Id, text = page.Name })
+		end
 	end
 
 	return ret
@@ -761,7 +764,7 @@ function AngryAssign:OnInitialize()
 				type = "execute",
 				name = "Toggle Window",
 				desc = "Shows/hides the main window (also available in game keybindings)",
-				func = function() AngryAssign_Toggle() end
+				func = function() AngryAssign_ToggleWindow() end
 			},
 			lock = {
 				type = "execute",
@@ -805,6 +808,11 @@ end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
 	self:SendRequestDisplay()
+end
+
+function AngryAssign:PARTY_LEADER_CHANGED()
+	self:UpdateSelected()
+	raidLeader = nil
 end
 
 function AngryAssign:AfterEnable()
