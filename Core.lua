@@ -461,7 +461,7 @@ function AngryAssign:CreateWindow()
 	button_display:SetWidth(140)
 	button_display:SetHeight(22)
 	button_display:ClearAllPoints()
-	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 0)
+	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 4)
 	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
 	tree:AddChild(button_display)
 	window.button_display = button_display
