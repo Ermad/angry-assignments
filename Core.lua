@@ -178,7 +178,7 @@ function AngryAssign:SendPage(id, force)
 	local curTime = time()
 
 	if lastUpdate and (curTime - lastUpdate <= updateFrequency) then
-		if not timerId or self:TimeLeft(timerId) <= 0 then
+		if not timerId then
 			if force then
 				self:SendPageMessage(id)
 			else
@@ -206,7 +206,7 @@ function AngryAssign:SendDisplay(id, force)
 	local curTime = time()
 
 	if displayLastUpdate and (curTime - displayLastUpdate <= updateFrequency) then
-		if not displayTimerId or self:TimeLeft(displayTimerId) <= 0 then
+		if not displayTimerId then
 			if force then
 				self:SendDisplayMessage(id)
 			else
@@ -819,7 +819,13 @@ end
 function AngryAssign:UpdateDisplayed()
 	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
 	if page then
-		self.display_text:SetText( page.Contents )
+		local text = page.Contents
+
+		for token in string.gmatch( AngryAssign_Config.highlight or "" , "[^%s,]+") do
+			text = text:gsub(token, NORMAL_FONT_COLOR_CODE ..token.."|r")
+		end
+
+		self.display_text:SetText( text )
 	else
 		self.display_text:SetText("")
 	end
@@ -837,24 +843,33 @@ function AngryAssign:OnInitialize()
 
 
 	local options = {
-		name = "AA",
+		name = "Angry Assignments",
 		handler = AngryAssign,
 		type = "group",
 		args = {
 			toggle = {
 				type = "execute",
+				order = 2,
 				name = "Toggle Window",
 				desc = "Shows/hides the main window (also available in game keybindings)",
 				func = function() AngryAssign_ToggleWindow() end
 			},
-			lock = {
+			delete_all = {
 				type = "execute",
-				name = "Toggle Display Lock",
-				desc = "Shows/hides the display mover (also available in game keybindings)",
-				func = function() AngryAssign:ToggleLock() end
+				name = "Delete All Pages",
+				desc = "Deletes all pages",
+				hidden = true,
+				func = function()
+					AngryAssign_Pages = {}
+					AngryAssign:UpdateTree()
+					AngryAssign:UpdateSelected()
+					AngryAssign:UpdateDisplayed()
+					AngryAssign:Print("All pages have been deleted")
+				end
 			},
 			version = {
 				type = "execute",
+				order = 3,
 				name = "Get Versions",
 				desc = "Displays a list of all users (in the guild) running the addon and the version they're running",
 				func = function() 
@@ -864,62 +879,100 @@ function AngryAssign:OnInitialize()
 					self:Print("Version check running...")
 				end
 			},
-			scale = {
-				type = "range",
-				name = "Scale",
-				desc = function() 
-					return "Sets the scale of the edit page window"
-				end,
-				min = 0.3,
-				max = 3,
-				get = function(info) return AngryAssign_Config.scale end,
-				set = function(info, val)
-					AngryAssign_Config.scale = val
-					if AngryAssign.window then AngryAssign.window.frame:SetScale(val) end
-				end
+			lock = {
+				type = "execute",
+				order = 1,
+				name = "Toggle Lock",
+				desc = "Shows/hides the display mover (also available in game keybindings)",
+				func = function() AngryAssign:ToggleLock() end
 			},
-			fontName = {
-				type = 'select',
-				dialogControl = 'LSM30_Font',
-				name = 'Display Font Face',
-				desc = 'Sets the font face used to display a page',
-				values = LSM:HashTable("font"),
-				get = function()
-					return AngryAssign_Config.fontName
-				end,
-				set = function(self,key)
-					AngryAssign_Config.fontName = key
-					AngryAssign:UpdateMedia()
-				end
+			config = { 
+				type = "group",
+				order = 4,
+				name = "General",
+				inline = true,
+				args = {
+					highlight = {
+						type = "input",
+						order = 2,
+						name = "Highlight",
+						desc = "A list of words to highlight on displayed pages",
+						get = function(info) return AngryAssign_Config.highlight end,
+						set = function(info, val)
+							AngryAssign_Config.highlight = val
+							AngryAssign:UpdateDisplayed()
+						end
+					},
+					scale = {
+						type = "range",
+						order = 1,
+						name = "Scale",
+						desc = function() 
+							return "Sets the scale of the edit page window"
+						end,
+						min = 0.3,
+						max = 3,
+						get = function(info) return AngryAssign_Config.scale end,
+						set = function(info, val)
+							AngryAssign_Config.scale = val
+							if AngryAssign.window then AngryAssign.window.frame:SetScale(val) end
+						end
+					}
+				}
 			},
-			fontHeight = {
-				type = "range",
-				name = "Display Font Size",
-				desc = function() 
-					return "Sets the font height used to display a page"
-				end,
-				min = 6,
-				max = 24,
-				step = 1,
-				get = function(info) return AngryAssign_Config.fontHeight end,
-				set = function(info, val)
-					AngryAssign_Config.fontHeight = val
-					AngryAssign:UpdateMedia()
-				end
-			},
-			fontFlags = {
-				type = "select",
-				name = "Display Font Outline",
-				desc = function() 
-					return "Sets the font outline used to display a page"
-				end,
-				values = { ["NONE"] = "None", ["OUTLINE"] = "Outline", ["THICKOUTLINE"] = "Thick Outline", ["MONOCHROMEOUTLINE"] = "Monochrome" },
-				get = function(info) return AngryAssign_Config.fontFlags end,
-				set = function(info, val)
-					AngryAssign_Config.fontFlags = val
-					AngryAssign:UpdateMedia()
-				end
-			},
+			font = { 
+				type = "group",
+				order = 5,
+				name = "Font Settings",
+				inline = true,
+				args = {
+					fontname = {
+						type = 'select',
+						order = 1,
+						dialogControl = 'LSM30_Font',
+						name = 'Font Face',
+						desc = 'Sets the font face used to display a page',
+						values = LSM:HashTable("font"),
+						get = function()
+							return AngryAssign_Config.fontName
+						end,
+						set = function(self,key)
+							AngryAssign_Config.fontName = key
+							AngryAssign:UpdateMedia()
+						end
+					},
+					fontheight = {
+						type = "range",
+						order = 2,
+						name = "Font Size",
+						desc = function() 
+							return "Sets the font height used to display a page"
+						end,
+						min = 6,
+						max = 24,
+						step = 1,
+						get = function(info) return AngryAssign_Config.fontHeight end,
+						set = function(info, val)
+							AngryAssign_Config.fontHeight = val
+							AngryAssign:UpdateMedia()
+						end
+					},
+					fontflags = {
+						type = "select",
+						order = 3,
+						name = "Font Outline",
+						desc = function() 
+							return "Sets the font outline used to display a page"
+						end,
+						values = { ["NONE"] = "None", ["OUTLINE"] = "Outline", ["THICKOUTLINE"] = "Thick Outline", ["MONOCHROMEOUTLINE"] = "Monochrome" },
+						get = function(info) return AngryAssign_Config.fontFlags end,
+						set = function(info, val)
+							AngryAssign_Config.fontFlags = val
+							AngryAssign:UpdateMedia()
+						end
+					}
+				}
+			}
 		}
 	}
 
@@ -954,12 +1007,13 @@ function AngryAssign:PARTY_CONVERTED_TO_RAID()
 end
 
 function AngryAssign:GROUP_JOINED()
+	raidLeader = nil
 	self:SendRequestDisplay()
 end
 
 function AngryAssign:PARTY_LEADER_CHANGED()
-	self:UpdateSelected()
 	raidLeader = nil
+	self:UpdateSelected()
 end
 
 function AngryAssign:AfterEnable()

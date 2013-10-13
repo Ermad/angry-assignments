@@ -1,6 +1,4 @@
-* "delete all" for pages, or some other way to prevent infinite buildup
 * raid icons support in on-screen display
 * ability to hide the on-screen display, but force it to re-appear everytime page is edited, or current page changes
 * some sort of brief graphical effect whenever current page gets edited
-* let user specify keywords to highlight in the on-screen display (don't do their own name by default, let them put it in if they want)
 * if in a raid currently, version check needs to display which raid members aren't running the addon
