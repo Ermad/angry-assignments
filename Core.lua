@@ -145,6 +145,13 @@ function AngryAssign:ProcessMessage(sender, data)
 			self:UpdateTree()
 		end
 
+	elseif cmd == "REQUEST_DISPLAY" then
+
+		self:SendDisplay(AngryAssign_State.displayed)
+
+	elseif cmd == "REQUEST_PAGE" then
+		
+		self:SendPage( data[REQUEST_PAGE_Id] )
 
 	elseif cmd == "VER_QUERY" then
 		local revToSend
