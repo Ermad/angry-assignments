@@ -36,6 +36,12 @@ externals:
 	libs/LibWindow-1.1:
 		url: svn://svn.wowace.com/wow/libwindow-1-1/mainline/trunk
 		tag: latest
+	libs/LibSharedMedia-3.0:
+		url: svn://svn.wowace.com/wow/libsharedmedia-3-0/mainline/trunk
+		tag: latest
+	libs/AceGUI-3.0-SharedMediaWidgets:
+		url: svn://svn.wowace.com/wow/ace-gui-3-0-shared-media-widgets/mainline/trunk
+		tag: latest
 	libs/LibStub:
 		url: svn://svn.wowace.com/wow/libstub/mainline/trunk
 		tag: latest

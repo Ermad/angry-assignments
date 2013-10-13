@@ -4,6 +4,7 @@ local libS = LibStub("AceSerializer-3.0")
 local libC = LibStub("LibCompress")
 local lwin = LibStub("LibWindow-1.1")
 local libCE = libC:GetAddonEncodeTable()
+local LSM = LibStub("LibSharedMedia-3.0")
 
 BINDING_HEADER_AngryAssign = "Angry Assignments"
 BINDING_NAME_AngryAssign_WINDOW = "Toggle Edit Window"
@@ -383,6 +384,7 @@ function AngryAssign:CreateWindow()
 	window:SetStatusTable(AngryAssign_State.window)
 	window:Hide()
 	AngryAssign.window = window
+	if AngryAssign_Config.scale then window.frame:SetScale(AngryAssign_Config.scale) end
 
 	local tree = AceGUI:Create("TreeGroup")
 	tree:SetTree( self:GetTree() )
@@ -647,6 +649,7 @@ function AngryAssign:CreateDisplay()
 	text:SetHeight(500)
 	-- text:SetMaxLines(50)
 	self.display_text = text
+	self:UpdateMedia()
 
 	local mover = CreateFrame("Frame", "AngryAssign_Mover", frame)
 	mover:SetPoint("LEFT",0,0)
@@ -737,6 +740,18 @@ function AngryAssign:UpdateDirection()
 	end
 end
 
+function AngryAssign:UpdateMedia()
+	local font = CreateFont("AngryAssign")
+	font:CopyFontObject("GameFontHighlight")
+	local fontName, fontHeight, fontFlags = font:GetFont()
+	if AngryAssign_Config.fontName then fontName = LSM:Fetch("font", AngryAssign_Config.fontName) end
+	if AngryAssign_Config.fontHeight then fontHeight = AngryAssign_Config.fontHeight end
+	if AngryAssign_Config.fontFlags then fontFlags = AngryAssign_Config.fontFlags end
+
+	font:SetFont(fontName, fontHeight, fontFlags)
+	self.display_text:SetFontObject(font)
+end
+
 function AngryAssign:UpdateDisplayed()
 	local page = AngryAssign_Pages[ displayedPage ]
 	if page then
@@ -754,6 +769,8 @@ end
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, locked = false, directionUp = false } end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
+	if AngryAssign_Config == nil then AngryAssign_Config = { scale = 1 } end
+
 
 	local options = {
 		name = "AA",
@@ -783,10 +800,68 @@ function AngryAssign:OnInitialize()
 					self:Print("Version check running...")
 				end
 			},
+			scale = {
+				type = "range",
+				name = "Scale",
+				desc = function() 
+					return "Sets the scale of the edit page window"
+				end,
+				min = 0.3,
+				max = 3,
+				get = function(info) return AngryAssign_Config.scale end,
+				set = function(info, val)
+					AngryAssign_Config.scale = val
+					if AngryAssign.window then AngryAssign.window.frame:SetScale(val) end
+				end
+			},
+			fontName = {
+				type = 'select',
+				dialogControl = 'LSM30_Font',
+				name = 'Display Font Face',
+				desc = 'Sets the font face used to display a page',
+				values = LSM:HashTable("font"),
+				get = function()
+					return AngryAssign_Config.fontName
+				end,
+				set = function(self,key)
+					AngryAssign_Config.fontName = key
+					AngryAssign:UpdateMedia()
+				end
+			},
+			fontHeight = {
+				type = "range",
+				name = "Display Font Size",
+				desc = function() 
+					return "Sets the font height used to display a page"
+				end,
+				min = 6,
+				max = 24,
+				step = 1,
+				get = function(info) return AngryAssign_Config.fontHeight end,
+				set = function(info, val)
+					AngryAssign_Config.fontHeight = val
+					AngryAssign:UpdateMedia()
+				end
+			},
+			fontFlags = {
+				type = "select",
+				name = "Display Font Outline",
+				desc = function() 
+					return "Sets the font outline used to display a page"
+				end,
+				values = { ["NONE"] = "None", ["OUTLINE"] = "Outline", ["THICKOUTLINE"] = "Thick Outline", ["MONOCHROMEOUTLINE"] = "Monochrome" },
+				get = function(info) return AngryAssign_Config.fontFlags end,
+				set = function(info, val)
+					AngryAssign_Config.fontFlags = val
+					AngryAssign:UpdateMedia()
+				end
+			},
 		}
 	}
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Angry Assignments", options, {"aa"})
+
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Angry Assignments", "Angry Assignments")
 end
 
 function AngryAssign:OnEnable()
@@ -800,6 +875,9 @@ function AngryAssign:OnEnable()
 	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("RAID_ROSTER_UPDATE")
+
+	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
+	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
 end
 
 function AngryAssign:RAID_ROSTER_UPDATE()

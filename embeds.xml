@@ -9,6 +9,9 @@
   <Include file="libs\AceComm-3.0\AceComm-3.0.xml"/>
   <Include file="libs\AceSerializer-3.0\AceSerializer-3.0.xml"/>
   <Include file="libs\AceEvent-3.0\AceEvent-3.0.xml"/>
+  <Include file="libs\LibSharedMedia-3.0\lib.xml"/>
+  <Include file="libs\AceGUI-3.0-SharedMediaWidgets\widget.xml"/>
   <Include file="libs\LibCompress\lib.xml"/>
   <Script file="libs\LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua"/>
 </Ui>
+

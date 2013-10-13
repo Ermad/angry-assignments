@@ -2,7 +2,7 @@
 ## Title: Angry Assignments
 ## Author: Ermad
 ## Version: @project-version@
-## SavedVariables: AngryAssign_Pages,AngryAssign_State
+## SavedVariables: AngryAssign_Pages,AngryAssign_State,AngryAssign_Config
 
 embeds.xml
 
