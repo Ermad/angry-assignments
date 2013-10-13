@@ -719,9 +719,10 @@ function AngryAssign:CreateDisplay()
 	lwin.RestorePosition(frame)
 
 	local text = CreateFrame("ScrollingMessageFrame", nil, frame)
-	-- text:SetIndentedWordWrap(true)
+	text:SetIndentedWordWrap(true)
 	text:SetJustifyH("LEFT")
 	text:SetFading(false)
+	text:SetHyperlinksEnabled(enable)
 	self.display_text = text
 	self:UpdateMedia()
 	self:UpdateDisplayed()
@@ -802,15 +803,21 @@ function AngryAssign:UpdateDirection()
 		self.display_text:ClearAllPoints()
 		self.display_text:SetPoint("BOTTOMLEFT", 0, 8)
 		self.display_text:SetPoint("RIGHT", 0, 0)
+		self.display_text:SetInsertMode("BOTTOM")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
 	else
 		self.display_text:ClearAllPoints()
 		self.display_text:SetPoint("TOPLEFT", 0, -8)
 		self.display_text:SetPoint("RIGHT", 0, 0)
+		self.display_text:SetInsertMode("TOP")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
 	end
+	self.display_text:SetHeight(500)
+	self:UpdateDisplayed()
+	self.display_text:Hide()
+	self.display_text:Show()
 end
 
 function AngryAssign:UpdateMedia()
@@ -848,7 +855,13 @@ function AngryAssign:UpdateDisplayed()
 			:gsub("{[Rr][Tt]([1-8])}", "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
 
 		self.display_text:Clear()
-		self.display_text:AddMessage( text )
+		local lines = { strsplit("\n", text) }
+		local lines_count = #lines
+		if AngryAssign_State.directionUp then
+			for i = 1, lines_count do self.display_text:AddMessage( lines[i] ) end
+		else
+			for i = 1, lines_count do self.display_text:AddMessage( lines[lines_count - i + 1] ) end
+		end
 	else
 		self.display_text:Clear()
 	end
