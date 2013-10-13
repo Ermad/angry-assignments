@@ -403,7 +403,7 @@ local function AngryAssign_DisplayPage(widget, event, value)
 	AngryAssign:SendPage( id, true )
 	AngryAssign:SendDisplay( id, true )
 	
-	if true or IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		AngryAssign_State.displayed = AngryAssign:SelectedId()
 		AngryAssign:UpdateDisplayed()
 		AngryAssign:ShowDisplay()
@@ -622,7 +622,7 @@ function AngryAssign:RenamePage(id, name)
 
 	page.Name = name
 	page.Updated = time()
-	
+
 	self:SendPage(id, true)
 	self:UpdateTree()
 	if AngryAssign_State.displayed == id then
