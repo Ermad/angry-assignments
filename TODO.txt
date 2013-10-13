@@ -1,3 +1,2 @@
-* raid icons support in on-screen display
 * ability to hide the on-screen display, but force it to re-appear everytime page is edited, or current page changes
 * some sort of brief graphical effect whenever current page gets edited

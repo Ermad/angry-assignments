@@ -816,9 +816,9 @@ function AngryAssign:UpdateDirection()
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
 	end
-	self:UpdateDisplayed()
 	self.display_text:Hide()
 	self.display_text:Show()
+	self:UpdateDisplayed()
 end
 
 function AngryAssign:UpdateMedia()
@@ -858,14 +858,21 @@ function AngryAssign:UpdateDisplayed()
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
 		local lines_count = #lines
-		if AngryAssign_State.directionUp then
-			for i = 1, lines_count do self.display_text:AddMessage( lines[i] ) end
-		else
-			for i = 1, lines_count do self.display_text:AddMessage( lines[lines_count - i + 1] ) end
+		for i = 1, lines_count do
+			local line
+			if AngryAssign_State.directionUp then
+				line = lines[i]
+			else 
+				line = lines[lines_count - i + 1]
+			end
+			if line == "" then line = " " end
+			self.display_text:AddMessage(line)
 		end
 	else
 		self.display_text:Clear()
 	end
+
+	-- self:Print( self.display_text:GetNumLinesDisplayed() )
 end
 
 
