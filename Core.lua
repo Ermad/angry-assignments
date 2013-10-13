@@ -400,9 +400,11 @@ end
 
 local function AngryAssign_DisplayPage(widget, event, value)
 	if not AngryAssign:PermissionCheck() then return end
+	local id = AngryAssign:SelectedId()
 
-	AngryAssign:SendPage( AngryAssign:SelectedId(), true )
-	AngryAssign:SendDisplay( AngryAssign:SelectedId(), true )
+	AngryAssign:TouchPage(id)
+	AngryAssign:SendPage( id, true )
+	AngryAssign:SendDisplay( id, true )
 
 	AngryAssign_State.displayed = AngryAssign:SelectedId()
 	AngryAssign:UpdateDisplayed()
@@ -958,7 +960,7 @@ function AngryAssign:OnInitialize()
 			version = {
 				type = "execute",
 				order = 6,
-				name = "Get Versions",
+				name = "Version Check",
 				desc = "Displays a list of all users (in the guild) running the addon and the version they're running",
 				func = function() 
 					versionList = {} -- start with a fresh version list, when displaying it
@@ -984,7 +986,7 @@ function AngryAssign:OnInitialize()
 						type = "input",
 						order = 1,
 						name = "Highlight",
-						desc = "A list of words to highlight on displayed pages",
+						desc = "A list of words to highlight on displayed pages (separated by spaces or punctuation)",
 						get = function(info) return AngryAssign_Config.highlight end,
 						set = function(info, val)
 							AngryAssign_Config.highlight = val
@@ -1092,6 +1094,7 @@ function AngryAssign:OnEnable()
 	self:RegisterEvent("RAID_ROSTER_UPDATE")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
+	self:RegisterEvent("RAID_ROSTER_UPDATE")
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
@@ -1118,6 +1121,15 @@ end
 function AngryAssign:PLAYER_REGEN_DISABLED()
 	if AngryAssign_Config.hideoncombat then
 		self:DisplayHide()
+	end
+end
+
+function AngryAssign:RAID_ROSTER_UPDATE()
+	self:Print('fired')
+	if AngryAssign_State.displayed and not IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		AngryAssign_State.displayed = nil
+		self:UpdateDisplayed()
+		self:UpdateTree()
 	end
 end
 
