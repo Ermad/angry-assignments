@@ -556,7 +556,7 @@ function AngryAssign:SelectedUpdated(sender)
 				preferredIndex = 3
 			}
 		end
-		StaticPopupDialogs[popup_name].text = "The page you are editing has been updated by "..sender.."\n\nYou can view this update by reverting your changes"
+		StaticPopupDialogs[popup_name].text = "The page you are editing has been updated by "..sender..".\n\nYou can view this update by reverting your changes."
 		StaticPopup_Show(popup_name)
 		return true
 	else
@@ -933,7 +933,7 @@ end
 -----------------
 
 function AngryAssign:OnInitialize()
-	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, locked = false, directionUp = false } end
+	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false } end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 	if AngryAssign_Config == nil then AngryAssign_Config = { scale = 1 } end
 
@@ -961,18 +961,21 @@ function AngryAssign:OnInitialize()
 				type = "execute",
 				name = "Delete All Pages",
 				desc = "Deletes all pages",
+				order = 4,
 				hidden = true,
+				cmdHidden = false,
 				func = function()
+					AngryAssign_State.displayed = nil
 					AngryAssign_Pages = {}
 					AngryAssign:UpdateTree()
 					AngryAssign:UpdateSelected()
 					AngryAssign:UpdateDisplayed()
-					AngryAssign:Print("All pages have been deleted")
+					AngryAssign:Print("All pages have been deleted.")
 				end
 			},
 			version = {
 				type = "execute",
-				order = 6,
+				order = 7,
 				name = "Version Check",
 				desc = "Displays a list of all users (in the guild) running the addon and the version they're running",
 				func = function() 
@@ -991,7 +994,7 @@ function AngryAssign:OnInitialize()
 			},
 			config = { 
 				type = "group",
-				order = 4,
+				order = 5,
 				name = "General",
 				inline = true,
 				args = {
@@ -1035,7 +1038,7 @@ function AngryAssign:OnInitialize()
 			},
 			font = { 
 				type = "group",
-				order = 5,
+				order = 6,
 				name = "Font",
 				inline = true,
 				args = {
@@ -1089,7 +1092,7 @@ function AngryAssign:OnInitialize()
 		}
 	}
 
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("Angry Assignments", options, {"aa"})
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("Angry Assignments", options, {"aa", "angryassign"})
 
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Angry Assignments", "Angry Assignments")
 end
