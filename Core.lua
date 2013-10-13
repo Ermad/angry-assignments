@@ -403,7 +403,7 @@ local function AngryAssign_DisplayPage(widget, event, value)
 	AngryAssign:SendPage( id, true )
 	AngryAssign:SendDisplay( id, true )
 	
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if true or IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		AngryAssign_State.displayed = AngryAssign:SelectedId()
 		AngryAssign:UpdateDisplayed()
 		AngryAssign:ShowDisplay()
@@ -736,19 +736,19 @@ function AngryAssign_ToggleDisplay()
 end
 
 function AngryAssign:ShowDisplay()
-	AngryAssign.display:Show() 
+	AngryAssign.display_text:Show() 
 	AngryAssign_State.display.hidden = false
 	if AngryAssign.window then AngryAssign.window.button_show:SetText("Hide") end
 end
 
 function AngryAssign:HideDisplay()
-	AngryAssign.display:Hide()
+	AngryAssign.display_text:Hide()
 	AngryAssign_State.display.hidden = true
 	if AngryAssign.window then AngryAssign.window.button_show:SetText("Show") end
 end
 
 function AngryAssign:ToggleDisplay()
-	if AngryAssign.display:IsShown() then 
+	if AngryAssign.display_text:IsShown() then 
 		AngryAssign:HideDisplay()
 	else
 		AngryAssign:ShowDisplay()
@@ -765,8 +765,6 @@ function AngryAssign:CreateDisplay()
 	frame:SetResizable(true)
 	frame:SetMinResize(180,1)
 	frame:SetMaxResize(830,1)
-	if AngryAssign_State.display.hidden then frame:Hide() end
-	self.display = frame
 
 	lwin.RegisterConfig(frame, AngryAssign_State.display)
 	lwin.RestorePosition(frame)
@@ -779,8 +777,7 @@ function AngryAssign:CreateDisplay()
 	text:SetHeight(700)
 	text:SetHyperlinksEnabled(enable)
 	self.display_text = text
-	self:UpdateMedia()
-	self:UpdateDisplayed()
+	if AngryAssign_State.display.hidden then text:Hide() end
 
 	local mover = CreateFrame("Frame", nil, frame)
 	mover:SetPoint("LEFT",0,0)
@@ -810,7 +807,6 @@ function AngryAssign:CreateDisplay()
 	direction:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight", "ADD")
 	direction:SetScript("OnClick", function() AngryAssign:ToggleDirection() end)
 	self.direction_button = direction
-	self:UpdateDirection()
 
 	local lock = CreateFrame("Button", nil, mover)
 	lock:SetNormalTexture("Interface\\LFGFRAME\\UI-LFG-ICON-LOCK")
@@ -835,6 +831,9 @@ function AngryAssign:CreateDisplay()
 	dragtex:SetHeight(16)
 	dragtex:SetBlendMode("ADD")
 	dragtex:SetPoint("CENTER", drag)
+
+	self:UpdateMedia()
+	self:UpdateDirection()
 end
 
 function AngryAssign:ToggleLock()
@@ -911,6 +910,8 @@ function AngryAssign:UpdateDisplayed()
 			:gsub("{[Rr][Tt]([1-8])}", "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
 			:gsub("{[Hh][Ee][Aa][Ll][Tt][Hh][Ss][Tt][Oo][Nn][Ee]}", "{hs}")
 			:gsub("{[Hh][Ss]}", "|TInterface\\Icons\\INV_Stone_04:0|t")
+			:gsub("{[Bb][Ll][Oo][Oo][Dd][Ll][Uu][Ss][Tt]}", "{bl}")
+			:gsub("{[Bb][Ll]}", "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
