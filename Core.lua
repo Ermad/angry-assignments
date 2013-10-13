@@ -397,11 +397,13 @@ local function AngryAssign_DisplayPage(widget, event, value)
 	AngryAssign:TouchPage(id)
 	AngryAssign:SendPage( id, true )
 	AngryAssign:SendDisplay( id, true )
-
-	AngryAssign_State.displayed = AngryAssign:SelectedId()
-	AngryAssign:UpdateDisplayed()
-	AngryAssign:ShowDisplay()
-	AngryAssign:UpdateTree()
+	
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		AngryAssign_State.displayed = AngryAssign:SelectedId()
+		AngryAssign:UpdateDisplayed()
+		AngryAssign:ShowDisplay()
+		AngryAssign:UpdateTree()
+	end
 end
 
 local function AngryAssign_TextChanged(widget, event, value)
@@ -447,11 +449,16 @@ function AngryAssign:CreateWindow()
 	text:SetCallback("OnEnterPressed", AngryAssign_TextEntered)
 	tree:AddChild(text)
 	window.text = text
+	text.button:SetWidth(75)
+	local buttontext = text.button:GetFontString()
+	buttontext:ClearAllPoints()
+	buttontext:SetPoint("TOPLEFT", text.button, "TOPLEFT", 15, -1)
+	buttontext:SetPoint("BOTTOMRIGHT", text.button, "BOTTOMRIGHT", -15, 1)
 
 	tree:PauseLayout()
 	local button_display = AceGUI:Create("Button")
 	button_display:SetText("Send and Display")
-	button_display:SetWidth(120)
+	button_display:SetWidth(140)
 	button_display:SetHeight(22)
 	button_display:ClearAllPoints()
 	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 0)
