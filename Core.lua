@@ -437,7 +437,7 @@ function AngryAssign:CreateWindow()
 
 	local version = AngryAssign_Version
 	if version:sub(1,1) == "@" then version = "dev" end
-	window:SetStatusText("Angry Assignments "..version)
+	window:SetStatusText(version)
 	window.statustext:SetJustifyH("RIGHT")
 
 	local tree = AceGUI:Create("TreeGroup")
