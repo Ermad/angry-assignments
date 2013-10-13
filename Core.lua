@@ -123,7 +123,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 		if AngryAssign_State.displayed == id then
 			self:UpdateDisplayed()
-			self:DisplayShow()
+			self:ShowDisplay()
 		end
 		self:UpdateTree()
 
@@ -141,7 +141,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		if AngryAssign_State.displayed ~= id then
 			AngryAssign_State.displayed = id
 			self:UpdateDisplayed()
-			self:DisplayShow()
+			self:ShowDisplay()
 			self:UpdateTree()
 		end
 
@@ -400,7 +400,7 @@ local function AngryAssign_DisplayPage(widget, event, value)
 
 	AngryAssign_State.displayed = AngryAssign:SelectedId()
 	AngryAssign:UpdateDisplayed()
-	AngryAssign:DisplayShow()
+	AngryAssign:ShowDisplay()
 	AngryAssign:UpdateTree()
 end
 
@@ -650,7 +650,7 @@ function AngryAssign:UpdateContents(id, value)
 	self:SendPage(id, true)
 	if AngryAssign_State.displayed == id then self:UpdateDisplayed() end
 	self:UpdateSelected(true)
-	self:DisplayShow()
+	self:ShowDisplay()
 end
 
 function AngryAssign:GetGuildRank(player)
@@ -663,6 +663,12 @@ function AngryAssign:GetGuildRank(player)
 	return 100
 end
 
+function AngryAssign:ClearDisplayed()
+	AngryAssign_State.displayed = nil
+	self:UpdateDisplayed()
+	self:UpdateTree()
+end
+
 function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = UnitName('player') end
 
@@ -671,7 +677,7 @@ function AngryAssign:PermissionCheck(sender)
 
 	if self:GetGuildRank(sender) <= officerGuildRank then
 		return true
-	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) and (UnitIsGroupLeader(sender) or UnitIsRaidOfficer(sender)) and self:GetGuildRank(self:GetRaidLeader()) <= officerGuildRank then
+	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) and (UnitIsGroupLeader(sender) or UnitIsGroupAssistant(sender)) and self:GetGuildRank(self:GetRaidLeader()) <= officerGuildRank then
 		return true
 	else
 		return false
@@ -700,21 +706,21 @@ function AngryAssign_ToggleDisplay()
 	AngryAssign:ToggleDisplay()
 end
 
-function AngryAssign:DisplayShow()
+function AngryAssign:ShowDisplay()
 	AngryAssign.display:Show() 
 	AngryAssign_State.display.hidden = false
 end
 
-function AngryAssign:DisplayHide()
+function AngryAssign:HideDisplay()
 	AngryAssign.display:Hide()
 	AngryAssign_State.display.hidden = true
 end
 
 function AngryAssign:ToggleDisplay()
 	if AngryAssign.display:IsShown() then 
-		AngryAssign:DisplayHide()
+		AngryAssign:HideDisplay()
 	else
-		AngryAssign:DisplayShow()
+		AngryAssign:ShowDisplay()
 	end
 end
 
@@ -890,7 +896,6 @@ function AngryAssign:UpdateDisplayed()
 		end
 	else
 		self.display_text:Clear()
-		self.update_notification:SetHeight(0)
 	end
 end
 
@@ -1068,16 +1073,17 @@ function AngryAssign:OnEnable()
 	
 	self:ScheduleTimer("AfterEnable", 6)
 
-
 	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
-	self:RegisterEvent("PARTY_LEADER_CHANGED")
-	self:RegisterEvent("RAID_ROSTER_UPDATE")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
-	self:RegisterEvent("RAID_ROSTER_UPDATE")
+	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
+
+	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		self:ClearDisplayed()
+	end
 end
 
 function AngryAssign:RAID_ROSTER_UPDATE()
@@ -1085,6 +1091,7 @@ function AngryAssign:RAID_ROSTER_UPDATE()
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
+	raidLeader = nil
 	self:SendRequestDisplay()
 end
 
@@ -1093,23 +1100,17 @@ function AngryAssign:GROUP_JOINED()
 	self:SendRequestDisplay()
 end
 
-function AngryAssign:PARTY_LEADER_CHANGED()
-	raidLeader = nil
-	self:UpdateSelected()
-end
-
 function AngryAssign:PLAYER_REGEN_DISABLED()
 	if AngryAssign_Config.hideoncombat then
-		self:DisplayHide()
+		self:HideDisplay()
 	end
 end
 
-function AngryAssign:RAID_ROSTER_UPDATE()
-	self:Print('fired')
+function AngryAssign:GROUP_ROSTER_UPDATE()
+	raidLeader = nil
+	self:UpdateSelected()
 	if AngryAssign_State.displayed and not IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		AngryAssign_State.displayed = nil
-		self:UpdateDisplayed()
-		self:UpdateTree()
+		self:ClearDisplayed()
 	end
 end
 
