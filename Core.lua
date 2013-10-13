@@ -256,18 +256,16 @@ function AngryAssign:SendRequestPage(id, to)
 	end
 end
 
-local raidLeader = nil
 function AngryAssign:GetRaidLeader()
-	if not raidLeader and IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
 			name, rank = GetRaidRosterInfo(i)
 			if rank == 2 then
-				raidLeader = name
-				break
+				return name
 			end
 		end
 	end
-	return raidLeader
+	return nil
 end
 
 function AngryAssign:VersionCheckOutput()
@@ -1121,12 +1119,10 @@ function AngryAssign:RAID_ROSTER_UPDATE()
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
-	raidLeader = nil
 	self:SendRequestDisplay()
 end
 
 function AngryAssign:GROUP_JOINED()
-	raidLeader = nil
 	self:SendRequestDisplay()
 end
 
@@ -1137,7 +1133,6 @@ function AngryAssign:PLAYER_REGEN_DISABLED()
 end
 
 function AngryAssign:GROUP_ROSTER_UPDATE()
-	raidLeader = nil
 	self:UpdateSelected()
 	if AngryAssign_State.displayed and not IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		self:ClearDisplayed()
