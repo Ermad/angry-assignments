@@ -722,6 +722,8 @@ function AngryAssign:CreateDisplay()
 	text:SetIndentedWordWrap(true)
 	text:SetJustifyH("LEFT")
 	text:SetFading(false)
+	text:SetMaxLines(70)
+	text:SetHeight(700)
 	text:SetHyperlinksEnabled(enable)
 	self.display_text = text
 	self:UpdateMedia()
@@ -814,7 +816,6 @@ function AngryAssign:UpdateDirection()
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
 	end
-	self.display_text:SetHeight(500)
 	self:UpdateDisplayed()
 	self.display_text:Hide()
 	self.display_text:Show()
@@ -839,7 +840,7 @@ function AngryAssign:UpdateDisplayed()
 		local fontHeight = AngryAssign_Config.fontHeight or 13
 
 		text = text:gsub("||", "|")
-		for token in string.gmatch( AngryAssign_Config.highlight or "" , "[^%s,]+") do
+		for token in string.gmatch( AngryAssign_Config.highlight or "" , "[^%s%p]+") do
 			text = text:gsub(token, NORMAL_FONT_COLOR_CODE ..token.."|r")
 		end
 
