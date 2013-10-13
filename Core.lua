@@ -290,11 +290,11 @@ local function AngryAssign_AddPage(widget, event, value)
 			button2 = CANCEL,
 			OnAccept = function(self)
 				local text = self.editBox:GetText()
-				AngryAssign:CreatePage(text)
+				if text ~= "" then AngryAssign:CreatePage(text) end
 			end,
 			EditBoxOnEnterPressed = function(self)
 				local text = self:GetParent().editBox:GetText()
-				AngryAssign:CreatePage(text)
+				if text ~= "" then AngryAssign:CreatePage(text) end
 				self:GetParent():Hide()
 			end,
 			text = "New page name:",
@@ -557,6 +557,7 @@ end
 function AngryAssign:UpdateSelected(destructive)
 	if not self.window then return end
 	local page = AngryAssign_Pages[ self:SelectedId() ]
+	local permission = self:PermissionCheck()
 	if destructive or not self.window.text.button:IsEnabled() then
 		if page then
 			self.window.text:SetText( page.Contents )
@@ -564,7 +565,7 @@ function AngryAssign:UpdateSelected(destructive)
 			self.window.text:SetText("")
 		end
 	end
-	if page and self:PermissionCheck() then
+	if page and permission then
 		self.window.button_rename:SetDisabled(false)
 		self.window.button_delete:SetDisabled(false)
 		self.window.button_revert:SetDisabled(not self.window.text.button:IsEnabled())
@@ -579,7 +580,7 @@ function AngryAssign:UpdateSelected(destructive)
 		self.window.button_send:SetDisabled(true)
 		self.window.text:SetDisabled(true)
 	end
-	if self:PermissionCheck() then
+	if permission then
 		self.window.button_add:SetDisabled(false)
 	else
 		self.window.button_add:SetDisabled(true)
@@ -647,16 +648,25 @@ function AngryAssign:UpdateContents(id, value)
 	self:UpdateSelected(true)
 end
 
+function AngryAssign:GetGuildRank(player)
+	for i = 1, GetNumGuildMembers() do
+		local name, _, rankIndex = GetGuildRosterInfo(i)
+		if name and (name == player) then
+			return rankIndex 
+		end
+	end
+	return 100
+end
+
 function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = UnitName('player') end
 
 	if sender == 'Ermod' then return true end
 
-	local myGuildName, _, _ = GetGuildInfo('player')
-	local guildName, guildRankName, guildRankIndex = GetGuildInfo(sender)
-	if myGuildName == guildName and guildRankIndex <= officerGuildRank then
+
+	if self:GetGuildRank(sender) <= officerGuildRank then
 		return true
-	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) and (UnitIsGroupLeader(sender) or UnitIsRaidOfficer(sender)) then
+	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) and (UnitIsGroupLeader(sender) or UnitIsRaidOfficer(sender)) and self:GetGuildRank(self:GetRaidLeader()) <= officerGuildRank then
 		return true
 	else
 		return false
