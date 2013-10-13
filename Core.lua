@@ -820,10 +820,22 @@ function AngryAssign:UpdateDisplayed()
 	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
 	if page then
 		local text = page.Contents
+		local fontHeight = AngryAssign_Config.fontHeight or 13
 
+		text = text:gsub("||", "|")
 		for token in string.gmatch( AngryAssign_Config.highlight or "" , "[^%s,]+") do
 			text = text:gsub(token, NORMAL_FONT_COLOR_CODE ..token.."|r")
 		end
+
+		text = text:gsub("{[Ss][Tt][Aa][Rr]}", "{rt1}")
+			:gsub("{[Cc][Ii][Rr][Cc][Ll][Ee]}", "{rt2}")
+			:gsub("{[Dd][Ii][Aa][Mm][Oo][Nn][Dd]}", "{rt3}")
+			:gsub("{[Tt][Rr][Ii][Aa][Nn][Gg][Ll][Ee]}", "{rt4}")
+			:gsub("{[Mm][Oo][Oo][Nn]}", "{rt5}")
+			:gsub("{[Ss][Qq][Uu][Aa][Rr][Ee]}", "{rt6}")
+			:gsub("{[Cc][Rr][Oo][Ss][Ss]}", "{rt7}")
+			:gsub("{[Ss][Kk][Uu][Ll][Ll]}", "{rt8}")
+			:gsub("{[Rr][Tt]([1-8])}", "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
 
 		self.display_text:SetText( text )
 	else
@@ -854,7 +866,7 @@ function AngryAssign:OnInitialize()
 				desc = "Shows/hides the main window (also available in game keybindings)",
 				func = function() AngryAssign_ToggleWindow() end
 			},
-			delete_all = {
+			deleteall = {
 				type = "execute",
 				name = "Delete All Pages",
 				desc = "Deletes all pages",
@@ -908,7 +920,7 @@ function AngryAssign:OnInitialize()
 						order = 1,
 						name = "Scale",
 						desc = function() 
-							return "Sets the scale of the edit page window"
+							return "Sets the scale of the edit window"
 						end,
 						min = 0.3,
 						max = 3,
@@ -923,14 +935,14 @@ function AngryAssign:OnInitialize()
 			font = { 
 				type = "group",
 				order = 5,
-				name = "Font Settings",
+				name = "Font",
 				inline = true,
 				args = {
 					fontname = {
 						type = 'select',
 						order = 1,
 						dialogControl = 'LSM30_Font',
-						name = 'Font Face',
+						name = 'Face',
 						desc = 'Sets the font face used to display a page',
 						values = LSM:HashTable("font"),
 						get = function()
@@ -944,7 +956,7 @@ function AngryAssign:OnInitialize()
 					fontheight = {
 						type = "range",
 						order = 2,
-						name = "Font Size",
+						name = "Size",
 						desc = function() 
 							return "Sets the font height used to display a page"
 						end,
@@ -960,7 +972,7 @@ function AngryAssign:OnInitialize()
 					fontflags = {
 						type = "select",
 						order = 3,
-						name = "Font Outline",
+						name = "Outline",
 						desc = function() 
 							return "Sets the font outline used to display a page"
 						end,
