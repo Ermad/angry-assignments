@@ -168,7 +168,6 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 		if not found then tinsert(versionList, {name = sender, version = ver}) end
 
-
 	end
 end
 
@@ -263,6 +262,21 @@ function AngryAssign:VersionCheckOutput()
 		versionliststr = versionliststr..v["name"].."-|cFFFF0000"..v["version"].."|r "
 	end
 	self:Print(versionliststr)
+	versionliststr = ""
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		for i in 1, GetNumGroupMembers() do
+			name = GetRaidRosterInfo(i)	
+			local found = false
+			for i,v in pairs(versionList) do
+				if v["name"] == name then
+					found = true
+					break
+				end
+			end
+			if not found then versionliststr = versionliststr .. " " .. name end
+		end
+	end
+	if versionliststr ~= "" then self:Print("Not running:"..versionliststr) end
 end
 
 --------------------------
@@ -692,7 +706,7 @@ local function Mover_MouseUp(frame)
 end
 
 function AngryAssign:CreateDisplay()
-	local frame = CreateFrame("Frame", "AngryAssign_Frame", UIParent)
+	local frame = CreateFrame("Frame", nil, UIParent)
 	frame:SetPoint("CENTER",0,0)
 	frame:SetWidth(AngryAssign_State.display.width or 300)
 	frame:SetHeight(1)
@@ -704,18 +718,15 @@ function AngryAssign:CreateDisplay()
 	lwin.RegisterConfig(frame, AngryAssign_State.display)
 	lwin.RestorePosition(frame)
 
-	local text = frame:CreateFontString()
-	text:SetFontObject("GameFontHighlight")
-	text:SetWordWrap(true)
-	text:SetIndentedWordWrap(true)
+	local text = CreateFrame("ScrollingMessageFrame", nil, frame)
+	-- text:SetIndentedWordWrap(true)
 	text:SetJustifyH("LEFT")
-	text:SetHeight(500)
-	-- text:SetMaxLines(50)
+	text:SetFading(false)
 	self.display_text = text
 	self:UpdateMedia()
 	self:UpdateDisplayed()
 
-	local mover = CreateFrame("Frame", "AngryAssign_Mover", frame)
+	local mover = CreateFrame("Frame", nil, frame)
 	mover:SetPoint("LEFT",0,0)
 	mover:SetPoint("RIGHT",0,0)
 	mover:SetHeight(16)
@@ -791,14 +802,12 @@ function AngryAssign:UpdateDirection()
 		self.display_text:ClearAllPoints()
 		self.display_text:SetPoint("BOTTOMLEFT", 0, 8)
 		self.display_text:SetPoint("RIGHT", 0, 0)
-		self.display_text:SetJustifyV("BOTTOM")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
 	else
 		self.display_text:ClearAllPoints()
 		self.display_text:SetPoint("TOPLEFT", 0, -8)
 		self.display_text:SetPoint("RIGHT", 0, 0)
-		self.display_text:SetJustifyV("TOP")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
 	end
@@ -834,12 +843,14 @@ function AngryAssign:UpdateDisplayed()
 			:gsub("{[Mm][Oo][Oo][Nn]}", "{rt5}")
 			:gsub("{[Ss][Qq][Uu][Aa][Rr][Ee]}", "{rt6}")
 			:gsub("{[Cc][Rr][Oo][Ss][Ss]}", "{rt7}")
+			:gsub("{[Xx]}", "{rt7}")
 			:gsub("{[Ss][Kk][Uu][Ll][Ll]}", "{rt8}")
 			:gsub("{[Rr][Tt]([1-8])}", "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
 
-		self.display_text:SetText( text )
+		self.display_text:Clear()
+		self.display_text:AddMessage( text )
 	else
-		self.display_text:SetText("")
+		self.display_text:Clear()
 	end
 end
 
