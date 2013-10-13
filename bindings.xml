@@ -1,4 +1,7 @@
 <Bindings>
+	<Binding name="AngryAssign_DISPLAY" header="AngryAssign">
+		AngryAssign_ToggleDisplay()
+	</Binding>
 	<Binding name="AngryAssign_LOCK" header="AngryAssign">
 		AngryAssign_ToggleLock()
 	</Binding>

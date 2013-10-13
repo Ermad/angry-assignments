@@ -7,8 +7,9 @@ local libCE = libC:GetAddonEncodeTable()
 local LSM = LibStub("LibSharedMedia-3.0")
 
 BINDING_HEADER_AngryAssign = "Angry Assignments"
-BINDING_NAME_AngryAssign_WINDOW = "Toggle Edit Window"
-BINDING_NAME_AngryAssign_LOCK = "Toggle Display Lock"
+BINDING_NAME_AngryAssign_WINDOW = "Toggle Window"
+BINDING_NAME_AngryAssign_LOCK = "Toggle Lock"
+BINDING_NAME_AngryAssign_DISPLAY = "Toggle Display"
 
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-timestamp@'
@@ -120,7 +121,10 @@ function AngryAssign:ProcessMessage(sender, data)
 		else
 			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
 		end
-		if AngryAssign_State.displayed == id then self:UpdateDisplayed() end
+		if AngryAssign_State.displayed == id then
+			self:UpdateDisplayed()
+			self:EnsureDisplay()
+		end
 		self:UpdateTree()
 
 
@@ -134,9 +138,12 @@ function AngryAssign:ProcessMessage(sender, data)
 			self:SendRequestPage(id, sender)
 		end
 		
-		AngryAssign_State.displayed = id
-		self:UpdateDisplayed()
-		self:UpdateTree()
+		if AngryAssign_State.displayed ~= id then
+			AngryAssign_State.displayed = id
+			self:UpdateDisplayed()
+			self:EnsureDisplay()
+			self:UpdateTree()
+		end
 
 
 	elseif cmd == "VER_QUERY" then
@@ -399,6 +406,7 @@ local function AngryAssign_DisplayPage(widget, event, value)
 
 	AngryAssign_State.displayed = AngryAssign:SelectedId()
 	AngryAssign:UpdateDisplayed()
+	AngryAssign:EnsureDisplay()
 	AngryAssign:UpdateTree()
 end
 
@@ -705,6 +713,27 @@ local function Mover_MouseUp(frame)
 	lwin.SavePosition(display)
 end
 
+function AngryAssign_ToggleDisplay()
+	AngryAssign:ToggleDisplay()
+end
+
+function AngryAssign:EnsureDisplay()
+	if not AngryAssign.display:IsShown() then 
+		AngryAssign:ToggleDisplay()
+	end
+end
+
+function AngryAssign:ToggleDisplay()
+	if AngryAssign.display:IsShown() then 
+		AngryAssign.display:Hide()
+		AngryAssign_State.display.hidden = true
+	else
+		AngryAssign.display:Show() 
+		AngryAssign_State.display.hidden = false
+	end
+end
+
+
 function AngryAssign:CreateDisplay()
 	local frame = CreateFrame("Frame", nil, UIParent)
 	frame:SetPoint("CENTER",0,0)
@@ -713,7 +742,9 @@ function AngryAssign:CreateDisplay()
 	frame:SetMovable(true)
 	frame:SetResizable(true)
 	frame:SetMinResize(180,1)
-	frame:SetMaxResize(800,1)
+	frame:SetMaxResize(830,1)
+	if AngryAssign_State.display.hidden then frame:Hide() end
+	self.display = frame
 
 	lwin.RegisterConfig(frame, AngryAssign_State.display)
 	lwin.RestorePosition(frame)
@@ -891,12 +922,19 @@ function AngryAssign:OnInitialize()
 		handler = AngryAssign,
 		type = "group",
 		args = {
+			window = {
+				type = "execute",
+				order = 3,
+				name = "Toggle Window",
+				desc = "Shows/hides the edit window (also available in game keybindings)",
+				func = function() AngryAssign_ToggleWindow() end
+			},
 			toggle = {
 				type = "execute",
-				order = 2,
-				name = "Toggle Window",
-				desc = "Shows/hides the main window (also available in game keybindings)",
-				func = function() AngryAssign_ToggleWindow() end
+				order = 1,
+				name = "Toggle Display",
+				desc = "Shows/hides the display frame (also available in game keybindings)",
+				func = function() AngryAssign_ToggleDisplay() end
 			},
 			deleteall = {
 				type = "execute",
@@ -913,7 +951,7 @@ function AngryAssign:OnInitialize()
 			},
 			version = {
 				type = "execute",
-				order = 3,
+				order = 6,
 				name = "Get Versions",
 				desc = "Displays a list of all users (in the guild) running the addon and the version they're running",
 				func = function() 
@@ -925,7 +963,7 @@ function AngryAssign:OnInitialize()
 			},
 			lock = {
 				type = "execute",
-				order = 1,
+				order = 2,
 				name = "Toggle Lock",
 				desc = "Shows/hides the display mover (also available in game keybindings)",
 				func = function() AngryAssign:ToggleLock() end
