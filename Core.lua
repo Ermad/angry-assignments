@@ -390,14 +390,6 @@ local function AngryAssign_RevertPage(widget, event, value)
 	AngryAssign.window.button_revert:SetDisabled(true)
 end
 
-local function AngryAssign_SendPage(widget, event, value)
-	if not AngryAssign:PermissionCheck() then return end
-	local id = AngryAssign:SelectedId()
-
-	AngryAssign:TouchPage(id)
-	AngryAssign:SendPage(id, true)
-end
-
 local function AngryAssign_DisplayPage(widget, event, value)
 	if not AngryAssign:PermissionCheck() then return end
 	local id = AngryAssign:SelectedId()
@@ -458,24 +450,14 @@ function AngryAssign:CreateWindow()
 
 	tree:PauseLayout()
 	local button_display = AceGUI:Create("Button")
-	button_display:SetText("Display")
-	button_display:SetWidth(80)
+	button_display:SetText("Send and Display")
+	button_display:SetWidth(120)
 	button_display:SetHeight(22)
 	button_display:ClearAllPoints()
 	button_display:SetPoint("BOTTOMRIGHT", text.frame, "BOTTOMRIGHT", 0, 0)
 	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
 	tree:AddChild(button_display)
 	window.button_display = button_display
-
-	local button_send = AceGUI:Create("Button")
-	button_send:SetText("Send")
-	button_send:SetWidth(70)
-	button_send:SetHeight(22)
-	button_send:ClearAllPoints()
-	button_send:SetPoint("RIGHT", button_display.frame, "LEFT", 0, 0)
-	button_send:SetCallback("OnClick", AngryAssign_SendPage)
-	tree:AddChild(button_send)
-	window.button_send = button_send
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
@@ -594,14 +576,12 @@ function AngryAssign:UpdateSelected(destructive)
 		self.window.button_delete:SetDisabled(false)
 		self.window.button_revert:SetDisabled(not self.window.text.button:IsEnabled())
 		self.window.button_display:SetDisabled(false)
-		self.window.button_send:SetDisabled(false)
 		self.window.text:SetDisabled(false)
 	else
 		self.window.button_rename:SetDisabled(true)
 		self.window.button_delete:SetDisabled(true)
 		self.window.button_revert:SetDisabled(true)
 		self.window.button_display:SetDisabled(true)
-		self.window.button_send:SetDisabled(true)
 		self.window.text:SetDisabled(true)
 	end
 	if permission then
