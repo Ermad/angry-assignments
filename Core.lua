@@ -252,7 +252,7 @@ end
 local raidLeader = nil
 function AngryAssign:GetRaidLeader()
 	if not raidLeader and IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		for i in 1, GetNumGroupMembers() do
+		for i = 1, GetNumGroupMembers() do
 			name, rank = GetRaidRosterInfo(i)
 			if rank == 2 then
 				raidLeader = name
@@ -271,7 +271,7 @@ function AngryAssign:VersionCheckOutput()
 	self:Print(versionliststr)
 	versionliststr = ""
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		for i in 1, GetNumGroupMembers() do
+		for i = 1, GetNumGroupMembers() do
 			name = GetRaidRosterInfo(i)	
 			local found = false
 			for i,v in pairs(versionList) do
@@ -394,7 +394,7 @@ local function AngryAssign_DisplayPage(widget, event, value)
 	if not AngryAssign:PermissionCheck() then return end
 	local id = AngryAssign:SelectedId()
 
-	AngryAssign:TouchPage(id)
+	AngryAssign:TouchPage( id )
 	AngryAssign:SendPage( id, true )
 	AngryAssign:SendDisplay( id, true )
 	
