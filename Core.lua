@@ -854,6 +854,8 @@ function AngryAssign:UpdateDisplayed()
 			:gsub("{[Xx]}", "{rt7}")
 			:gsub("{[Ss][Kk][Uu][Ll][Ll]}", "{rt8}")
 			:gsub("{[Rr][Tt]([1-8])}", "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
+			:gsub("{[Hh][Ee][Aa][Ll][Tt][Hh][Ss][Tt][Oo][Nn][Ee]}", "{hs}")
+			:gsub("{[Hh][Ss]}", "|TInterface\\Icons\\INV_Stone_04:0|t")
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
@@ -871,8 +873,6 @@ function AngryAssign:UpdateDisplayed()
 	else
 		self.display_text:Clear()
 	end
-
-	-- self:Print( self.display_text:GetNumLinesDisplayed() )
 end
 
 
