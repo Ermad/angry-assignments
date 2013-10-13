@@ -366,6 +366,15 @@ end
 local function AngryAssign_RevertPage(widget, event, value)
 	if not AngryAssign.window then return end
 	AngryAssign.window.text:SetText( AngryAssign_Pages[AngryAssign:SelectedId()].Contents )
+	AngryAssign.window.button_revert:SetDisabled(true)
+end
+
+local function AngryAssign_SendPage(widget, event, value)
+	if not AngryAssign:PermissionCheck() then return end
+	local id = AngryAssign:SelectedId()
+
+	AngryAssign:TouchPage(id)
+	AngryAssign:SendPage(id, true)
 end
 
 local function AngryAssign_DisplayPage(widget, event, value)
@@ -433,6 +442,16 @@ function AngryAssign:CreateWindow()
 	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
 	tree:AddChild(button_display)
 	window.button_display = button_display
+
+	local button_send = AceGUI:Create("Button")
+	button_send:SetText("Send")
+	button_send:SetWidth(70)
+	button_send:SetHeight(22)
+	button_send:ClearAllPoints()
+	button_send:SetPoint("RIGHT", button_display.frame, "LEFT", 0, 0)
+	button_send:SetCallback("OnClick", AngryAssign_SendPage)
+	tree:AddChild(button_send)
+	window.button_send = button_send
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
@@ -505,7 +524,7 @@ function AngryAssign:SelectedUpdated(sender)
 				preferredIndex = 3
 			}
 		end
-		StaticPopupDialogs[popup_name].text = "The page you are editing has been updated by "..sender
+		StaticPopupDialogs[popup_name].text = "The page you are editing has been updated by "..sender.."\n\nYou can view this update by reverting your changes"
 		StaticPopup_Show(popup_name)
 		return true
 	else
@@ -538,20 +557,26 @@ end
 function AngryAssign:UpdateSelected(destructive)
 	if not self.window then return end
 	local page = AngryAssign_Pages[ self:SelectedId() ]
-	if page and (destructive or not self.window.text.button:IsEnabled()) then
-		self.window.text:SetText( page.Contents )
+	if destructive or not self.window.text.button:IsEnabled() then
+		if page then
+			self.window.text:SetText( page.Contents )
+		else
+			self.window.text:SetText("")
+		end
 	end
 	if page and self:PermissionCheck() then
 		self.window.button_rename:SetDisabled(false)
 		self.window.button_delete:SetDisabled(false)
-		self.window.button_revert:SetDisabled(false)
+		self.window.button_revert:SetDisabled(not self.window.text.button:IsEnabled())
 		self.window.button_display:SetDisabled(false)
+		self.window.button_send:SetDisabled(false)
 		self.window.text:SetDisabled(false)
 	else
 		self.window.button_rename:SetDisabled(true)
 		self.window.button_delete:SetDisabled(true)
 		self.window.button_revert:SetDisabled(true)
 		self.window.button_display:SetDisabled(true)
+		self.window.button_send:SetDisabled(true)
 		self.window.text:SetDisabled(true)
 	end
 	if self:PermissionCheck() then
@@ -599,6 +624,14 @@ function AngryAssign:DeletePage(id)
 		self:UpdateSelected(true)
 	end
 	self:UpdateTree()
+end
+
+function AngryAssign:TouchPage(id)
+	if not self:PermissionCheck() then return end
+	local page = self:Get(id)
+	if not page then return end
+
+	page.Updated = time()
 end
 
 function AngryAssign:UpdateContents(id, value)
