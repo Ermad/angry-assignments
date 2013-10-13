@@ -345,11 +345,11 @@ local function AngryAssign_RenamePage(widget, event, value)
 			button2 = CANCEL,
 			OnAccept = function(self)
 				local text = self.editBox:GetText()
-				AngryAssign:RenamePage(id, text)
+				AngryAssign:RenamePage(page.Id, text)
 			end,
 			EditBoxOnEnterPressed = function(self)
 				local text = self:GetParent().editBox:GetText()
-				AngryAssign:RenamePage(id, text)
+				AngryAssign:RenamePage(page.Id, text)
 				self:GetParent():Hide()
 			end,
 			OnShow = function(self)
@@ -435,6 +435,11 @@ function AngryAssign:CreateWindow()
 	window.frame:SetFrameLevel(1)
 	tinsert(UISpecialFrames, "AngryAssign_Window")
 
+	local version = AngryAssign_Version
+	if version:sub(1,1) == "@" then version = "dev" end
+	window:SetStatusText("Angry Assignments "..version)
+	window.statustext:SetJustifyH("RIGHT")
+
 	local tree = AceGUI:Create("TreeGroup")
 	tree:SetTree( self:GetTree() )
 	tree:SelectByValue(1)
@@ -512,34 +517,6 @@ function AngryAssign:CreateWindow()
 	button_delete:SetCallback("OnClick", AngryAssign_DeletePage)
 	window:AddChild(button_delete)
 	window.button_delete = button_delete
-
-	local button_lock = AceGUI:Create("Button")
-	if AngryAssign_State.locked then
-		button_lock:SetText("Unlock")
-	else
-		button_lock:SetText("Lock")
-	end
-	button_lock:SetWidth(80)
-	button_lock:SetHeight(19)
-	button_lock:ClearAllPoints()
-	button_lock:SetPoint("BOTTOMRIGHT", window.frame, "BOTTOMRIGHT", -135, 18)
-	button_lock:SetCallback("OnClick", function() AngryAssign:ToggleLock() end)
-	window:AddChild(button_lock)
-	window.button_lock = button_lock
-
-	local button_show = AceGUI:Create("Button")
-	if AngryAssign_State.display.hidden then
-		button_show:SetText("Show")
-	else
-		button_show:SetText("Hide")
-	end
-	button_show:SetWidth(80)
-	button_show:SetHeight(19)
-	button_show:ClearAllPoints()
-	button_show:SetPoint("RIGHT", button_lock.frame, "LEFT", -5, 0)
-	button_show:SetCallback("OnClick", function() AngryAssign:ToggleDisplay() end)
-	window:AddChild(button_show)
-	window.button_show = button_show
 
 	self:UpdateSelected(true)
 end
@@ -644,7 +621,14 @@ function AngryAssign:RenamePage(id, name)
 	if not page or not self:PermissionCheck() then return end
 
 	page.Name = name
+	page.Updated = time()
+	
+	self:SendPage(id, true)
 	self:UpdateTree()
+	if AngryAssign_State.displayed == id then
+		self:UpdateDisplayed()
+		self:ShowDisplay()
+	end
 end
 
 function AngryAssign:DeletePage(id)
@@ -674,12 +658,14 @@ function AngryAssign:UpdateContents(id, value)
 	if not page then return end
 
 	page.Contents = value:gsub('^%s+', ''):gsub('%s+$', '')
-
 	page.Updated = time()
+
 	self:SendPage(id, true)
-	if AngryAssign_State.displayed == id then self:UpdateDisplayed() end
 	self:UpdateSelected(true)
-	self:ShowDisplay()
+	if AngryAssign_State.displayed == id then
+		self:UpdateDisplayed()
+		self:ShowDisplay()
+	end
 end
 
 function AngryAssign:GetGuildRank(player)
@@ -738,13 +724,11 @@ end
 function AngryAssign:ShowDisplay()
 	AngryAssign.display_text:Show() 
 	AngryAssign_State.display.hidden = false
-	if AngryAssign.window then AngryAssign.window.button_show:SetText("Hide") end
 end
 
 function AngryAssign:HideDisplay()
 	AngryAssign.display_text:Hide()
 	AngryAssign_State.display.hidden = true
-	if AngryAssign.window then AngryAssign.window.button_show:SetText("Show") end
 end
 
 function AngryAssign:ToggleDisplay()
@@ -840,10 +824,8 @@ function AngryAssign:ToggleLock()
 	AngryAssign_State.locked = not AngryAssign_State.locked
 	if AngryAssign_State.locked then
 		self.mover:Hide()
-		if AngryAssign.window then AngryAssign.window.button_lock:SetText("Unlock") end
 	else
 		self.mover:Show()
-		if AngryAssign.window then AngryAssign.window.button_lock:SetText("Lock") end
 	end
 end
 
