@@ -28,9 +28,6 @@ local officerGuildRank = 2 -- The lowest officer guild rank
 local warnedOOD = false
 local versionList = {}
 
--- Used for displaying pages
-local displayedPage = nil
-
 -- Pages Saved Variable Format 
 -- 	AngryAssign_Pages = {
 -- 		[Id] = { Id = "1231", Updated = time(), Name = "Name", Contents = "..." },
@@ -120,12 +117,11 @@ function AngryAssign:ProcessMessage(sender, data)
 				self:SelectedUpdated(sender)
 				self:UpdateSelected()
 			end
-			self:UpdateTree()
 		else
 			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
-			self:UpdateTree()
 		end
-		if displayedPage == id then self:UpdateDisplayed() end
+		if AngryAssign_State.displayed == id then self:UpdateDisplayed() end
+		self:UpdateTree()
 
 
 	elseif cmd == "DISPLAY" then
@@ -138,7 +134,7 @@ function AngryAssign:ProcessMessage(sender, data)
 			self:SendRequestPage(id, sender)
 		end
 		
-		displayedPage = id
+		AngryAssign_State.displayed = id
 		self:UpdateDisplayed()
 		self:UpdateTree()
 
@@ -176,14 +172,21 @@ function AngryAssign:ProcessMessage(sender, data)
 	end
 end
 
-function AngryAssign:SendPage(id)
+function AngryAssign:SendPage(id, force)
 	local lastUpdate = pageLastUpdate[id]
 	local timerId = pageTimerId[id]
 	local curTime = time()
 
 	if lastUpdate and (curTime - lastUpdate <= updateFrequency) then
 		if not timerId or self:TimeLeft(timerId) <= 0 then
-			pageTimerId[id] = self:ScheduleTimer("SendPageMessage", updateFrequency - (curTime - lastUpdate), id)
+			if force then
+				self:SendPageMessage(id)
+			else
+				pageTimerId[id] = self:ScheduleTimer("SendPageMessage", updateFrequency - (curTime - lastUpdate), id)
+			end
+		elseif force then
+			self:CancelTimer( timerId )
+			self:SendPageMessage(id)
 		end
 	else
 		self:SendPageMessage(id)
@@ -199,12 +202,19 @@ function AngryAssign:SendPageMessage(id)
 	pageTimerId[id] = nil
 end
 
-function AngryAssign:SendDisplay(id)
+function AngryAssign:SendDisplay(id, force)
 	local curTime = time()
 
 	if displayLastUpdate and (curTime - displayLastUpdate <= updateFrequency) then
 		if not displayTimerId or self:TimeLeft(displayTimerId) <= 0 then
-			displayTimerId = self:ScheduleTimer("SendDisplayMessage", updateFrequency - (curTime - displayLastUpdate), id)
+			if force then
+				self:SendDisplayMessage(id)
+			else
+				displayTimerId = self:ScheduleTimer("SendDisplayMessage", updateFrequency - (curTime - displayLastUpdate), id)
+			end
+		elseif force then
+			self:CancelTimer( displayTimerId )
+			self:SendDisplayMessage(id)
 		end
 	else
 		self:SendDisplayMessage(id)
@@ -214,7 +224,7 @@ end
 function AngryAssign:SendDisplayMessage(id)
 	local page = AngryAssign_Pages[ id ]
 	if not page then error("Can't display page, does not exist"); return end
-	self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }) 
+	self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }, "RAID") 
 
 	displayLastUpdate = time()
 	displayTimerId = nil
@@ -222,14 +232,14 @@ end
 
 function AngryAssign:SendRequestDisplay()
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		self:SendMessage({ "REQUEST_DISPLAY" }) 
+		self:SendMessage({ "REQUEST_DISPLAY" }, "WHISPER", self:GetRaidLeader()) 
 	end
 end
 
 function AngryAssign:SendRequestPage(id, to)
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) or to then
 		if not to then to = self:GetRaidLeader() end
-		self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to) 
+		self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to)
 	end
 end
 
@@ -287,7 +297,7 @@ local function AngryAssign_AddPage(widget, event, value)
 				AngryAssign:CreatePage(text)
 				self:GetParent():Hide()
 			end,
-			text = "New page name",
+			text = "New page name:",
 			hasEditBox = true,
 			whileDead = true,
 			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
@@ -361,19 +371,21 @@ end
 local function AngryAssign_DisplayPage(widget, event, value)
 	if not AngryAssign:PermissionCheck() then return end
 
-	AngryAssign:SendPage( AngryAssign:SelectedId() )
-	AngryAssign:SendDisplay( AngryAssign:SelectedId() )
+	AngryAssign:SendPage( AngryAssign:SelectedId(), true )
+	AngryAssign:SendDisplay( AngryAssign:SelectedId(), true )
 
-	displayedPage = AngryAssign:SelectedId()
+	AngryAssign_State.displayed = AngryAssign:SelectedId()
 	AngryAssign:UpdateDisplayed()
+	AngryAssign:UpdateTree()
 end
 
 local function AngryAssign_TextChanged(widget, event, value)
-
+	AngryAssign.window.button_revert:SetDisabled(false)
 end
 
 local function AngryAssign_TextEntered(widget, event, value)
 	AngryAssign:UpdateContents(AngryAssign:SelectedId(), value)
+	AngryAssign.window.button_revert:SetDisabled(true)
 end
 
 function AngryAssign:CreateWindow()
@@ -381,10 +393,15 @@ function AngryAssign:CreateWindow()
 	window:SetTitle("Angry Assignments")
 	window:SetStatusText("")
 	window:SetLayout("Flow")
+	if AngryAssign_Config.scale then window.frame:SetScale(AngryAssign_Config.scale) end
 	window:SetStatusTable(AngryAssign_State.window)
 	window:Hide()
 	AngryAssign.window = window
-	if AngryAssign_Config.scale then window.frame:SetScale(AngryAssign_Config.scale) end
+
+	AngryAssign_Window = window.frame
+	window.frame:SetFrameStrata("HIGH")
+	window.frame:SetFrameLevel(1)
+	tinsert(UISpecialFrames, "AngryAssign_Window")
 
 	local tree = AceGUI:Create("TreeGroup")
 	tree:SetTree( self:GetTree() )
@@ -419,7 +436,7 @@ function AngryAssign:CreateWindow()
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
-	button_revert:SetWidth(65)
+	button_revert:SetWidth(75)
 	button_revert:SetHeight(22)
 	button_revert:ClearAllPoints()
 	button_revert:SetDisabled(true)
@@ -441,7 +458,7 @@ function AngryAssign:CreateWindow()
 
 	local button_rename = AceGUI:Create("Button")
 	button_rename:SetText("Rename")
-	button_rename:SetWidth(70)
+	button_rename:SetWidth(80)
 	button_rename:SetHeight(19)
 	button_rename:ClearAllPoints()
 	button_rename:SetPoint("BOTTOMLEFT", button_add.frame, "BOTTOMRIGHT", 5, 0)
@@ -465,7 +482,7 @@ function AngryAssign:CreateWindow()
 	else
 		button_lock:SetText("Lock")
 	end
-	button_lock:SetWidth(70)
+	button_lock:SetWidth(80)
 	button_lock:SetHeight(19)
 	button_lock:ClearAllPoints()
 	button_lock:SetPoint("BOTTOMRIGHT", window.frame, "BOTTOMRIGHT", -135, 18)
@@ -500,7 +517,7 @@ function AngryAssign:GetTree()
 	local ret = {}
 
 	for _, page in pairs(AngryAssign_Pages) do
-		if page.Id == displayedPage then
+		if page.Id == AngryAssign_State.displayed then
 			tinsert(ret, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
 		else
 			tinsert(ret, { value = page.Id, text = page.Name })
@@ -563,7 +580,7 @@ function AngryAssign:CreatePage(name)
 
 	AngryAssign_Pages[id] = { Id = id, Updated = time(), Name = name, Contents = "" }
 	self:UpdateTree(id)
-	self:SendPage(id)
+	self:SendPage(id, true)
 end
 
 function AngryAssign:RenamePage(id, name)
@@ -588,10 +605,13 @@ function AngryAssign:UpdateContents(id, value)
 	if not self:PermissionCheck() then return end
 	local page = self:Get(id)
 	if not page then return end
-	page.Contents = value
+
+	page.Contents = value:gsub('^%s+', ''):gsub('%s+$', '')
+
 	page.Updated = time()
-	self:SendPage(id)
-	if displayedPage == id then self:UpdateDisplayed() end
+	self:SendPage(id, true)
+	if AngryAssign_State.displayed == id then self:UpdateDisplayed() end
+	self:UpdateSelected(true)
 end
 
 function AngryAssign:PermissionCheck(sender)
@@ -650,6 +670,7 @@ function AngryAssign:CreateDisplay()
 	-- text:SetMaxLines(50)
 	self.display_text = text
 	self:UpdateMedia()
+	self:UpdateDisplayed()
 
 	local mover = CreateFrame("Frame", "AngryAssign_Mover", frame)
 	mover:SetPoint("LEFT",0,0)
@@ -753,7 +774,7 @@ function AngryAssign:UpdateMedia()
 end
 
 function AngryAssign:UpdateDisplayed()
-	local page = AngryAssign_Pages[ displayedPage ]
+	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
 	if page then
 		self.display_text:SetText( page.Contents )
 	else
@@ -875,6 +896,7 @@ function AngryAssign:OnEnable()
 	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("RAID_ROSTER_UPDATE")
+	self:RegisterEvent("GROUP_JOINED")
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
@@ -885,6 +907,10 @@ function AngryAssign:RAID_ROSTER_UPDATE()
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
+	self:SendRequestDisplay()
+end
+
+function AngryAssign:GROUP_JOINED()
 	self:SendRequestDisplay()
 end
 

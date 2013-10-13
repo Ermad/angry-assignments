@@ -1,0 +1,11 @@
+* "delete all" for pages, or some other way to prevent infinite buildup
+* don't allow someone who's promoted in a raid to change pages, unless the leader of their current raid is an officer in the guild
+* raid icons support in on-screen display
+* ability to hide the on-screen display, but force it to re-appear everytime page is edited, or current page changes
+* some sort of brief graphical effect whenever current page gets edited
+* let user specify keywords to highlight in the on-screen display (don't do their own name by default, let them put it in if they want)
+* if in a raid currently, version check needs to display which raid members aren't running the addon
+* fix guild rank/membership checks (discussed)
+* would like to be able to send the current version of a page without having to make a gratuitious change on it (thus updating timestamp) to activate the "Accept" button... how about adding a "Send" button that's always lit up? obviously, this would mainly be for outside-of-raid assignments discussion/editing.
+* "Revert" button shouldn't be lit up unless you're actively doing an edit (opposite of "Accept")
+* "The page you are updating" msg (when someone else edits the page you're editing) also pops up behind the main window, same as that New page pop-up mentioned earlier. Also, it should include some warning text saying that you can hit "Revert" to go to that person's updated version.
