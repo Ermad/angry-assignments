@@ -970,6 +970,7 @@ function AngryAssign:OnInitialize()
 					AngryAssign:UpdateTree()
 					AngryAssign:UpdateSelected()
 					AngryAssign:UpdateDisplayed()
+					if AngryAssign.window then AngryAssign.window.tree:SetSelected(nil) end
 					AngryAssign:Print("All pages have been deleted.")
 				end
 			},
