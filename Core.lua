@@ -123,7 +123,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 		if AngryAssign_State.displayed == id then
 			self:UpdateDisplayed()
-			self:EnsureDisplay()
+			self:DisplayShow()
 		end
 		self:UpdateTree()
 
@@ -141,7 +141,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		if AngryAssign_State.displayed ~= id then
 			AngryAssign_State.displayed = id
 			self:UpdateDisplayed()
-			self:EnsureDisplay()
+			self:DisplayShow()
 			self:UpdateTree()
 		end
 
@@ -406,7 +406,7 @@ local function AngryAssign_DisplayPage(widget, event, value)
 
 	AngryAssign_State.displayed = AngryAssign:SelectedId()
 	AngryAssign:UpdateDisplayed()
-	AngryAssign:EnsureDisplay()
+	AngryAssign:DisplayShow()
 	AngryAssign:UpdateTree()
 end
 
@@ -668,6 +668,7 @@ function AngryAssign:UpdateContents(id, value)
 	self:SendPage(id, true)
 	if AngryAssign_State.displayed == id then self:UpdateDisplayed() end
 	self:UpdateSelected(true)
+	self:DisplayShow()
 end
 
 function AngryAssign:GetGuildRank(player)
@@ -717,19 +718,21 @@ function AngryAssign_ToggleDisplay()
 	AngryAssign:ToggleDisplay()
 end
 
-function AngryAssign:EnsureDisplay()
-	if not AngryAssign.display:IsShown() then 
-		AngryAssign:ToggleDisplay()
-	end
+function AngryAssign:DisplayShow()
+	AngryAssign.display:Show() 
+	AngryAssign_State.display.hidden = false
+end
+
+function AngryAssign:DisplayHide()
+	AngryAssign.display:Hide()
+	AngryAssign_State.display.hidden = true
 end
 
 function AngryAssign:ToggleDisplay()
 	if AngryAssign.display:IsShown() then 
-		AngryAssign.display:Hide()
-		AngryAssign_State.display.hidden = true
+		AngryAssign:DisplayHide()
 	else
-		AngryAssign.display:Show() 
-		AngryAssign_State.display.hidden = false
+		AngryAssign:DisplayShow()
 	end
 end
 
@@ -864,11 +867,13 @@ function AngryAssign:UpdateMedia()
 	self.display_text:SetFontObject(font)
 end
 
+function AngryAssign:DisplayUpdateNotification()
+end
+
 function AngryAssign:UpdateDisplayed()
 	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
 	if page then
 		local text = page.Contents
-		local fontHeight = AngryAssign_Config.fontHeight or 13
 
 		text = text:gsub("||", "|")
 		for token in string.gmatch( AngryAssign_Config.highlight or "" , "[^%s%p]+") do
@@ -903,6 +908,7 @@ function AngryAssign:UpdateDisplayed()
 		end
 	else
 		self.display_text:Clear()
+		self.update_notification:SetHeight(0)
 	end
 end
 
@@ -976,7 +982,7 @@ function AngryAssign:OnInitialize()
 				args = {
 					highlight = {
 						type = "input",
-						order = 2,
+						order = 1,
 						name = "Highlight",
 						desc = "A list of words to highlight on displayed pages",
 						get = function(info) return AngryAssign_Config.highlight end,
@@ -985,9 +991,19 @@ function AngryAssign:OnInitialize()
 							AngryAssign:UpdateDisplayed()
 						end
 					},
+					hideoncombat = {
+						type = "toggle",
+						order = 2,
+						name = "Hide on Combat",
+						desc = "Enable to hide display frame upon entering combat",
+						get = function(info) return AngryAssign_Config.hideoncombat end,
+						set = function(info, val)
+							AngryAssign_Config.hideoncombat = val
+						end
+					},
 					scale = {
 						type = "range",
-						order = 1,
+						order = 3,
 						name = "Scale",
 						desc = function() 
 							return "Sets the scale of the edit window"
@@ -1075,6 +1091,7 @@ function AngryAssign:OnEnable()
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("RAID_ROSTER_UPDATE")
 	self:RegisterEvent("GROUP_JOINED")
+	self:RegisterEvent("PLAYER_REGEN_DISABLED")
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
@@ -1096,6 +1113,12 @@ end
 function AngryAssign:PARTY_LEADER_CHANGED()
 	raidLeader = nil
 	self:UpdateSelected()
+end
+
+function AngryAssign:PLAYER_REGEN_DISABLED()
+	if AngryAssign_Config.hideoncombat then
+		self:DisplayHide()
+	end
 end
 
 function AngryAssign:AfterEnable()
