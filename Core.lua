@@ -654,6 +654,9 @@ function AngryAssign:DeletePage(id)
 		self.window.tree:SetSelected(nil)
 		self:UpdateSelected(true)
 	end
+	if AngryAssign_State.displayed == id then
+		self:ClearDisplayed()
+	end
 	self:UpdateTree()
 end
 
