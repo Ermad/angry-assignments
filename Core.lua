@@ -522,6 +522,20 @@ function AngryAssign:CreateWindow()
 	window:AddChild(button_lock)
 	window.button_lock = button_lock
 
+	local button_show = AceGUI:Create("Button")
+	if AngryAssign_State.display.hidden then
+		button_show:SetText("Show")
+	else
+		button_show:SetText("Hide")
+	end
+	button_show:SetWidth(80)
+	button_show:SetHeight(19)
+	button_show:ClearAllPoints()
+	button_show:SetPoint("RIGHT", button_lock.frame, "LEFT", -5, 0)
+	button_show:SetCallback("OnClick", function() AngryAssign:ToggleDisplay() end)
+	window:AddChild(button_show)
+	window.button_show = button_show
+
 	self:UpdateSelected(true)
 end
 
@@ -716,11 +730,13 @@ end
 function AngryAssign:ShowDisplay()
 	AngryAssign.display:Show() 
 	AngryAssign_State.display.hidden = false
+	if AngryAssign.window then AngryAssign.window.button_show:SetText("Hide") end
 end
 
 function AngryAssign:HideDisplay()
 	AngryAssign.display:Hide()
 	AngryAssign_State.display.hidden = true
+	if AngryAssign.window then AngryAssign.window.button_show:SetText("Show") end
 end
 
 function AngryAssign:ToggleDisplay()
