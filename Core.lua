@@ -765,7 +765,6 @@ function AngryAssign:CreateDisplay()
 	text:SetHeight(700)
 	text:SetHyperlinksEnabled(false)
 	self.display_text = text
-	if AngryAssign_State.display.hidden then text:Hide() end
 
 	local mover = CreateFrame("Frame", nil, frame)
 	mover:SetPoint("LEFT",0,0)
@@ -820,6 +819,7 @@ function AngryAssign:CreateDisplay()
 	dragtex:SetBlendMode("ADD")
 	dragtex:SetPoint("CENTER", drag)
 
+	if AngryAssign_State.display.hidden then text:Hide() end
 	self:UpdateMedia()
 	self:UpdateDirection()
 end
@@ -854,8 +854,10 @@ function AngryAssign:UpdateDirection()
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
 	end
-	self.display_text:Hide()
-	self.display_text:Show()
+	if self.display_text:IsShown() then
+		self.display_text:Hide()
+		self.display_text:Show()
+	end
 	self:UpdateDisplayed()
 end
 
