@@ -108,7 +108,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		local id = data[PAGE_Id]
 		local page = AngryAssign_Pages[id]
 		if page then
-			if page.Updated >= data[PAGE_Updated] then return end -- The version sent it not newer then the one we already have
+			if page.Updated >= data[PAGE_Updated] then return end -- The version received is not newer then the one we already have
 
 			page.Updated = data[PAGE_Updated]
 			page.Name = data[PAGE_Name]
@@ -127,7 +127,6 @@ function AngryAssign:ProcessMessage(sender, data)
 			self:DisplayUpdateNotification()
 		end
 		self:UpdateTree()
-
 
 	elseif cmd == "DISPLAY" then
 		if not self:PermissionCheck(sender) then return end
@@ -155,13 +154,13 @@ function AngryAssign:ProcessMessage(sender, data)
 		
 		self:SendPage( data[REQUEST_PAGE_Id] )
 
+
 	elseif cmd == "VER_QUERY" then
 		local revToSend
 		local timestampToSend
 		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
 		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
 		self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend })
-
 
 	elseif cmd == "VERSION" then
 		local localTimestamp, ver, timestamp
@@ -1109,10 +1108,6 @@ function AngryAssign:OnEnable()
 	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		self:ClearDisplayed()
 	end
-end
-
-function AngryAssign:RAID_ROSTER_UPDATE()
-	self:UpdateSelected()
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
