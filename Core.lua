@@ -893,6 +893,7 @@ function AngryAssign:UpdateDisplayed()
 			:gsub("{[Hh][Ss]}", "|TInterface\\Icons\\INV_Stone_04:0|t")
 			:gsub("{[Bb][Ll][Oo][Oo][Dd][Ll][Uu][Ss][Tt]}", "{bl}")
 			:gsub("{[Bb][Ll]}", "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
+			:gsub("{[Ii][Cc][Oo][Nn]%s+([%w_]+)}", "|TInterface\\Icons\\%1:0|t")
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
