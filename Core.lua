@@ -580,16 +580,19 @@ function AngryAssign:UpdateSelected(destructive)
 	end
 	if page and permission then
 		self.window.button_rename:SetDisabled(false)
-		self.window.button_delete:SetDisabled(false)
 		self.window.button_revert:SetDisabled(not self.window.text.button:IsEnabled())
 		self.window.button_display:SetDisabled(false)
 		self.window.text:SetDisabled(false)
 	else
 		self.window.button_rename:SetDisabled(true)
-		self.window.button_delete:SetDisabled(true)
 		self.window.button_revert:SetDisabled(true)
 		self.window.button_display:SetDisabled(true)
 		self.window.text:SetDisabled(true)
+	end
+	if page then
+		self.window.button_delete:SetDisabled(false)
+	else
+		self.window.button_delete:SetDisabled(true)
 	end
 	if permission then
 		self.window.button_add:SetDisabled(false)
@@ -636,7 +639,6 @@ function AngryAssign:RenamePage(id, name)
 end
 
 function AngryAssign:DeletePage(id)
-	if not self:PermissionCheck() then return end
 	AngryAssign_Pages[id] = nil
 	if self.window and self:SelectedId() == id then
 		self.window.tree:SetSelected(nil)
