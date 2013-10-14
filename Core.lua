@@ -105,6 +105,7 @@ function AngryAssign:ProcessMessage(sender, data)
 	if cmd == "PAGE" then
 		if not self:PermissionCheck(sender) or sender == UnitName('player') then return end
 
+		local contents_updated = true
 		local id = data[PAGE_Id]
 		local page = AngryAssign_Pages[id]
 		if page then
@@ -112,6 +113,7 @@ function AngryAssign:ProcessMessage(sender, data)
 
 			page.Updated = data[PAGE_Updated]
 			page.Name = data[PAGE_Name]
+			contents_updated = page.Contents ~= data[PAGE_Contents]
 			page.Contents = data[PAGE_Contents]
 
 			if self:SelectedId() == id then
@@ -124,7 +126,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		if AngryAssign_State.displayed == id then
 			self:UpdateDisplayed()
 			self:ShowDisplay()
-			self:DisplayUpdateNotification()
+			if contents_updated then self:DisplayUpdateNotification() end
 		end
 		self:UpdateTree()
 
@@ -664,7 +666,9 @@ function AngryAssign:UpdateContents(id, value)
 	local page = self:Get(id)
 	if not page then return end
 
-	page.Contents = value:gsub('^%s+', ''):gsub('%s+$', '')
+	local new_content = value:gsub('^%s+', ''):gsub('%s+$', '')
+	local contents_updated = new_content ~= page.Contents
+	page.Contents = new_content
 	page.Updated = time()
 
 	self:SendPage(id, true)
@@ -672,7 +676,7 @@ function AngryAssign:UpdateContents(id, value)
 	if AngryAssign_State.displayed == id then
 		self:UpdateDisplayed()
 		self:ShowDisplay()
-		self:DisplayUpdateNotification()
+		if contents_updated then self:DisplayUpdateNotification() end
 	end
 end
 
