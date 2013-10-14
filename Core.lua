@@ -12,7 +12,7 @@ BINDING_NAME_AngryAssign_LOCK = "Toggle Lock"
 BINDING_NAME_AngryAssign_DISPLAY = "Toggle Display"
 
 local AngryAssign_Version = '@project-version@'
-local AngryAssign_Timestamp = '@project-timestamp@'
+local AngryAssign_Timestamp = '@project-date-integer@'
 
 local default_channel = "GUILD"
 local protocolVersion = 1
@@ -859,7 +859,7 @@ function AngryAssign:UpdateDirection()
 end
 
 function AngryAssign:UpdateMedia()
-	local font = CreateFont("AngryAssign")
+	local font = CreateFont("AngryAssign_Font")
 	font:CopyFontObject("GameFontHighlight")
 	local fontName, fontHeight, fontFlags = font:GetFont()
 	if AngryAssign_Config.fontName then fontName = LSM:Fetch("font", AngryAssign_Config.fontName) end
@@ -924,7 +924,7 @@ end
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false } end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
-	if AngryAssign_Configs == nil then AngryAssign_Config = { scale = 1, fontName = "Friz Quadrata TT", fontHeight = 12, fontFlags = "NONE" } end
+	if AngryAssign_Config == nil then AngryAssign_Config = { scale = 1, fontName = "Friz Quadrata TT", fontHeight = 12, fontFlags = "NONE" } end
 
 
 	local options = {
