@@ -124,6 +124,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		if AngryAssign_State.displayed == id then
 			self:UpdateDisplayed()
 			self:ShowDisplay()
+			self:DisplayUpdateNotification()
 		end
 		self:UpdateTree()
 
@@ -140,14 +141,15 @@ function AngryAssign:ProcessMessage(sender, data)
 		
 		if AngryAssign_State.displayed ~= id then
 			AngryAssign_State.displayed = id
+			self:UpdateTree()
 			self:UpdateDisplayed()
 			self:ShowDisplay()
-			self:UpdateTree()
+			self:DisplayUpdateNotification()
 		end
 
 	elseif cmd == "REQUEST_DISPLAY" then
 
-		self:SendDisplay(AngryAssign_State.displayed)
+		self:SendDisplay( AngryAssign_State.displayed )
 
 	elseif cmd == "REQUEST_PAGE" then
 		
@@ -671,6 +673,7 @@ function AngryAssign:UpdateContents(id, value)
 	if AngryAssign_State.displayed == id then
 		self:UpdateDisplayed()
 		self:ShowDisplay()
+		self:DisplayUpdateNotification()
 	end
 end
 
