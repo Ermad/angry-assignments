@@ -65,8 +65,8 @@ local REQUEST_PAGE_Id = 2
 local DISPLAY_Id = 2
 local DISPLAY_Updated = 3
 
-local VERSION_Version = 3
-local VERSION_Timestamp = 4
+local VERSION_Version = 2
+local VERSION_Timestamp = 3
 
 -------------------------
 -- Addon Communication --
@@ -134,7 +134,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		local id = data[DISPLAY_Id]
 		local updated = data[DISPLAY_Updated]
 		local page = AngryAssign_Pages[id]
-		if not page or updated > page.Updated then
+		if id and (not page or updated > page.Updated) then
 			self:SendRequestPage(id, sender)
 		end
 		
@@ -155,7 +155,7 @@ function AngryAssign:ProcessMessage(sender, data)
 
 	elseif cmd == "VER_QUERY" then
 		local revToSend
-		local verToSend
+		local timestampToSend
 		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
 		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
 		self:SendMessage({ "VERSION", verToSend, timestampToSend })
@@ -236,8 +236,11 @@ end
 
 function AngryAssign:SendDisplayMessage(id)
 	local page = AngryAssign_Pages[ id ]
-	if not page then error("Can't display page, does not exist"); return end
-	self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }, "RAID") 
+	if not page then
+		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil }, "RAID") 
+	else
+		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }, "RAID") 
+	end
 
 	displayLastUpdate = time()
 	displayTimerId = nil
@@ -259,7 +262,7 @@ end
 function AngryAssign:GetRaidLeader()
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
-			name, rank = GetRaidRosterInfo(i)
+			local name, rank = GetRaidRosterInfo(i)
 			if rank == 2 then
 				return name
 			end
@@ -277,7 +280,7 @@ function AngryAssign:VersionCheckOutput()
 	versionliststr = ""
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
-			name = GetRaidRosterInfo(i)	
+			local name = GetRaidRosterInfo(i)	
 			local found = false
 			for i,v in pairs(versionList) do
 				if v["name"] == name then
@@ -759,7 +762,7 @@ function AngryAssign:CreateDisplay()
 	text:SetFading(false)
 	text:SetMaxLines(70)
 	text:SetHeight(700)
-	text:SetHyperlinksEnabled(enable)
+	text:SetHyperlinksEnabled(false)
 	self.display_text = text
 	if AngryAssign_State.display.hidden then text:Hide() end
 
@@ -921,7 +924,7 @@ end
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false } end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
-	if AngryAssign_Config == nil then AngryAssign_Config = { scale = 1 } end
+	if AngryAssign_Configs == nil then AngryAssign_Config = { scale = 1, fontName = "Friz Quadrata TT", fontHeight = 12, fontFlags = "NONE" } end
 
 
 	local options = {
