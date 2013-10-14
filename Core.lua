@@ -207,12 +207,12 @@ function AngryAssign:SendPage(id, force)
 end
 
 function AngryAssign:SendPageMessage(id)
-	local page = AngryAssign_Pages[ id ]
-	if not page then error("Can't send page, does not exist"); return end
-	self:SendMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents }) 
-
 	pageLastUpdate[id] = time()
 	pageTimerId[id] = nil
+	
+	local page = AngryAssign_Pages[ id ]
+	if not page then error("Can't send page, does not exist"); return end
+	self:SendMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents })
 end
 
 function AngryAssign:SendDisplay(id, force)
@@ -235,15 +235,15 @@ function AngryAssign:SendDisplay(id, force)
 end
 
 function AngryAssign:SendDisplayMessage(id)
+	displayLastUpdate = time()
+	displayTimerId = nil
+	
 	local page = AngryAssign_Pages[ id ]
 	if not page then
 		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil }, "RAID") 
 	else
 		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }, "RAID") 
 	end
-
-	displayLastUpdate = time()
-	displayTimerId = nil
 end
 
 function AngryAssign:SendRequestDisplay()
@@ -366,7 +366,7 @@ local function AngryAssign_RenamePage(widget, event, value)
 			preferredIndex = 3
 		}
 	end
-	StaticPopupDialogs[popup_name].text = 'Rename page "'.. page.Name ..'" to?'
+	StaticPopupDialogs[popup_name].text = 'Rename page "'.. page.Name ..'" to:'
 
 	StaticPopup_Show(popup_name)
 end
