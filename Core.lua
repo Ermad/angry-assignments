@@ -761,6 +761,7 @@ function AngryAssign:CreateDisplay()
 	frame:SetResizable(true)
 	frame:SetMinResize(180,1)
 	frame:SetMaxResize(830,1)
+	frame:SetFrameStrata("MEDIUM")	
 
 	lwin.RegisterConfig(frame, AngryAssign_State.display)
 	lwin.RestorePosition(frame)
