@@ -248,14 +248,15 @@ end
 
 function AngryAssign:SendRequestDisplay()
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		self:SendMessage({ "REQUEST_DISPLAY" }, "WHISPER", self:GetRaidLeader()) 
+		local to = self:GetRaidLeader()
+		if to then self:SendMessage({ "REQUEST_DISPLAY" }, "WHISPER", to) end
 	end
 end
 
 function AngryAssign:SendRequestPage(id, to)
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) or to then
 		if not to then to = self:GetRaidLeader() end
-		self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to)
+		if to then self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to) end
 	end
 end
 
