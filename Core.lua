@@ -859,15 +859,10 @@ function AngryAssign:UpdateDirection()
 end
 
 function AngryAssign:UpdateMedia()
-	local font = CreateFont("AngryAssign_Font")
-	font:CopyFontObject("GameFontHighlight")
-	local fontName, fontHeight, fontFlags = font:GetFont()
-	if AngryAssign_Config.fontName then fontName = LSM:Fetch("font", AngryAssign_Config.fontName) end
-	if AngryAssign_Config.fontHeight then fontHeight = AngryAssign_Config.fontHeight end
-	if AngryAssign_Config.fontFlags then fontFlags = AngryAssign_Config.fontFlags end
-
-	font:SetFont(fontName, fontHeight, fontFlags)
-	self.display_text:SetFontObject(font)
+	local fontName = LSM:Fetch("font", AngryAssign_Config.fontName)
+	local fontHeight = AngryAssign_Config.fontHeight
+	local fontFlags = AngryAssign_Config.fontFlags
+	self.display_text:SetFont(fontName, fontHeight, fontFlag)
 end
 
 function AngryAssign:DisplayUpdateNotification()
