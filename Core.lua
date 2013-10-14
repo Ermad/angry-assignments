@@ -158,7 +158,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		local timestampToSend
 		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
 		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
-		self:SendMessage({ "VERSION", verToSend, timestampToSend })
+		self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend })
 
 
 	elseif cmd == "VERSION" then
@@ -862,7 +862,7 @@ function AngryAssign:UpdateMedia()
 	local fontName = LSM:Fetch("font", AngryAssign_Config.fontName)
 	local fontHeight = AngryAssign_Config.fontHeight
 	local fontFlags = AngryAssign_Config.fontFlags
-	self.display_text:SetFont(fontName, fontHeight, fontFlag)
+	self.display_text:SetFont(fontName, fontHeight, fontFlags)
 end
 
 function AngryAssign:DisplayUpdateNotification()
