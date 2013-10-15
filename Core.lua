@@ -31,7 +31,7 @@ local versionList = {}
 
 -- Pages Saved Variable Format 
 -- 	AngryAssign_Pages = {
--- 		[Id] = { Id = "1231", Updated = time(), Name = "Name", Contents = "..." },
+-- 		[Id] = { Id = "1231", Updated = time(), Name = "Name", Contents = "...", Backup = "..." },
 --		...
 -- 	}
 --
@@ -430,6 +430,16 @@ local function AngryAssign_TextEntered(widget, event, value)
 	AngryAssign.window.button_display:SetDisabled(false)
 end
 
+local function AngryAssign_RestorePage(widget, event, value)
+	if not AngryAssign.window then return end
+	local page = AngryAssign_Pages[AngryAssign:SelectedId()]
+	if not page or not page.Backup then return end
+	
+	AngryAssign.window.text.editBox:SetText( page.Backup )
+	AngryAssign.window.text.button:SetDisabled(false)
+	AngryAssign_TextChanged(widget, event, value)
+end
+
 function AngryAssign:CreateWindow()
 	local window = AceGUI:Create("Frame")
 	window:SetTitle("Angry Assignments")
@@ -485,10 +495,20 @@ function AngryAssign:CreateWindow()
 	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
 	tree:AddChild(button_display)
 	window.button_display = button_display
+	
+	local button_restore = AceGUI:Create("Button")
+	button_restore:SetText("Restore")
+	button_restore:SetWidth(80)
+	button_restore:SetHeight(22)
+	button_restore:ClearAllPoints()
+	button_restore:SetPoint("RIGHT", button_display.frame, "LEFT", -6, 0)
+	button_restore:SetCallback("OnClick", AngryAssign_RestorePage)
+	tree:AddChild(button_restore)
+	window.button_restore = button_restore
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
-	button_revert:SetWidth(75)
+	button_revert:SetWidth(80)
 	button_revert:SetHeight(22)
 	button_revert:ClearAllPoints()
 	button_revert:SetDisabled(true)
@@ -588,11 +608,13 @@ function AngryAssign:UpdateSelected(destructive)
 		self.window.button_rename:SetDisabled(false)
 		self.window.button_revert:SetDisabled(not self.window.text.button:IsEnabled())
 		self.window.button_display:SetDisabled(self.window.text.button:IsEnabled())
+		self.window.button_restore:SetDisabled(not page.Backup)
 		self.window.text:SetDisabled(false)
 	else
 		self.window.button_rename:SetDisabled(true)
 		self.window.button_revert:SetDisabled(true)
 		self.window.button_display:SetDisabled(true)
+		self.window.button_restore:SetDisabled(true)
 		self.window.text:SetDisabled(true)
 	end
 	if page then
@@ -672,6 +694,7 @@ function AngryAssign:UpdateContents(id, value)
 	local new_content = value:gsub('^%s+', ''):gsub('%s+$', '')
 	local contents_updated = new_content ~= page.Contents
 	page.Contents = new_content
+	page.Backup = new_content
 	page.Updated = time()
 
 	self:SendPage(id, true)
@@ -681,6 +704,13 @@ function AngryAssign:UpdateContents(id, value)
 		self:ShowDisplay()
 		if contents_updated then self:DisplayUpdateNotification() end
 	end
+end
+
+function AngryAssign:CreateBackup()
+	for _, page in pairs(AngryAssign_Pages) do
+		page.Backup = page.Contents
+	end
+	self:UpdateSelected()
 end
 
 function AngryAssign:GetGuildRank(player)
@@ -967,19 +997,28 @@ function AngryAssign:OnInitialize()
 				func = function()
 					AngryAssign_State.displayed = nil
 					AngryAssign_Pages = {}
-					AngryAssign:UpdateTree()
-					AngryAssign:UpdateSelected()
-					AngryAssign:UpdateDisplayed()
-					if AngryAssign.window then AngryAssign.window.tree:SetSelected(nil) end
-					AngryAssign:Print("All pages have been deleted.")
+					self:UpdateTree()
+					self:UpdateSelected()
+					self:UpdateDisplayed()
+					if self.window then self.window.tree:SetSelected(nil) end
+					self:Print("All pages have been deleted.")
+				end
+			},
+			backup = {
+				type = "execute",
+				order = 7,
+				name = "Backup Pages",
+				desc = "Creates a backup of all pages with their current contents",
+				func = function() 
+					self:CreateBackup()
 				end
 			},
 			version = {
 				type = "execute",
-				order = 7,
+				order = 8,
 				name = "Version Check",
 				desc = "Displays a list of all users (in the guild) running the addon and the version they're running",
-				func = function() 
+				func = function()
 					versionList = {} -- start with a fresh version list, when displaying it
 					self:SendMessage({ "VER_QUERY" }) 
 					self:ScheduleTimer("VersionCheckOutput", 2)
@@ -991,7 +1030,7 @@ function AngryAssign:OnInitialize()
 				order = 2,
 				name = "Toggle Lock",
 				desc = "Shows/hides the display mover (also available in game keybindings)",
-				func = function() AngryAssign:ToggleLock() end
+				func = function() self:ToggleLock() end
 			},
 			config = { 
 				type = "group",
@@ -1007,7 +1046,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return AngryAssign_Config.highlight end,
 						set = function(info, val)
 							AngryAssign_Config.highlight = val
-							AngryAssign:UpdateDisplayed()
+							self:UpdateDisplayed()
 						end
 					},
 					hideoncombat = {
@@ -1055,7 +1094,7 @@ function AngryAssign:OnInitialize()
 						end,
 						set = function(self,key)
 							AngryAssign_Config.fontName = key
-							AngryAssign:UpdateMedia()
+							self:UpdateMedia()
 						end
 					},
 					fontheight = {
@@ -1071,7 +1110,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return AngryAssign_Config.fontHeight end,
 						set = function(info, val)
 							AngryAssign_Config.fontHeight = val
-							AngryAssign:UpdateMedia()
+							self:UpdateMedia()
 						end
 					},
 					fontflags = {
@@ -1085,7 +1124,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return AngryAssign_Config.fontFlags end,
 						set = function(info, val)
 							AngryAssign_Config.fontFlags = val
-							AngryAssign:UpdateMedia()
+							self:UpdateMedia()
 						end
 					}
 				}
