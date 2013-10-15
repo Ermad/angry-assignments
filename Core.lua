@@ -400,6 +400,7 @@ local function AngryAssign_RevertPage(widget, event, value)
 	if not AngryAssign.window then return end
 	AngryAssign.window.text:SetText( AngryAssign_Pages[AngryAssign:SelectedId()].Contents )
 	AngryAssign.window.button_revert:SetDisabled(true)
+	AngryAssign.window.button_display:SetDisabled(false)
 end
 
 local function AngryAssign_DisplayPage(widget, event, value)
@@ -420,11 +421,13 @@ end
 
 local function AngryAssign_TextChanged(widget, event, value)
 	AngryAssign.window.button_revert:SetDisabled(false)
+	AngryAssign.window.button_display:SetDisabled(true)
 end
 
 local function AngryAssign_TextEntered(widget, event, value)
 	AngryAssign:UpdateContents(AngryAssign:SelectedId(), value)
 	AngryAssign.window.button_revert:SetDisabled(true)
+	AngryAssign.window.button_display:SetDisabled(false)
 end
 
 function AngryAssign:CreateWindow()
@@ -584,7 +587,7 @@ function AngryAssign:UpdateSelected(destructive)
 	if page and permission then
 		self.window.button_rename:SetDisabled(false)
 		self.window.button_revert:SetDisabled(not self.window.text.button:IsEnabled())
-		self.window.button_display:SetDisabled(false)
+		self.window.button_display:SetDisabled(self.window.text.button:IsEnabled())
 		self.window.text:SetDisabled(false)
 	else
 		self.window.button_rename:SetDisabled(true)
