@@ -861,6 +861,13 @@ function AngryAssign:CreateDisplay()
 	dragtex:SetBlendMode("ADD")
 	dragtex:SetPoint("CENTER", drag)
 
+	local glow = frame:CreateTexture(nil, "BACKGROUND")
+	glow:SetTexture("Interface\\LevelUp\\LevelUpTex")
+	glow:SetSize(326, 103)
+	glow:SetTextCoords(0.00195313, 0.63867188, 0.03710938. 0.23828125)
+	glow:SetColor(1, 0, 0, 1)
+	self.display_glow = glow
+
 	if AngryAssign_State.display.hidden then text:Hide() end
 	self:UpdateMedia()
 	self:UpdateDirection()
@@ -888,6 +895,8 @@ function AngryAssign:UpdateDirection()
 		self.display_text:SetInsertMode("BOTTOM")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
+		self.display_glow:ClearAllPoints()
+		self.display_glow:SetPoint("BOTTOM", 0, 8)
 	else
 		self.display_text:ClearAllPoints()
 		self.display_text:SetPoint("TOPLEFT", 0, -8)
@@ -895,6 +904,8 @@ function AngryAssign:UpdateDirection()
 		self.display_text:SetInsertMode("TOP")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
+		self.display_glow:ClearAllPoints()
+		self.display_glow:SetPoint("TOP", 0, -8)
 	end
 	if self.display_text:IsShown() then
 		self.display_text:Hide()
