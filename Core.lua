@@ -411,11 +411,12 @@ local function AngryAssign_DisplayPage(widget, event, value)
 	AngryAssign:SendPage( id, true )
 	AngryAssign:SendDisplay( id, true )
 	
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) and AngryAssign_State.displayed ~= id then
 		AngryAssign_State.displayed = AngryAssign:SelectedId()
 		AngryAssign:UpdateDisplayed()
 		AngryAssign:ShowDisplay()
 		AngryAssign:UpdateTree()
+		AngryAssign:DisplayUpdateNotification()
 	end
 end
 
@@ -435,8 +436,8 @@ local function AngryAssign_RestorePage(widget, event, value)
 	local page = AngryAssign_Pages[AngryAssign:SelectedId()]
 	if not page or not page.Backup then return end
 	
-	AngryAssign.window.text.editBox:SetText( page.Backup )
-	AngryAssign.window.text.button:SetDisabled(false)
+	AngryAssign.window.text:SetText( page.Backup )
+	AngryAssign.window.text.button:Enable()
 	AngryAssign_TextChanged(widget, event, value)
 end
 
@@ -495,16 +496,6 @@ function AngryAssign:CreateWindow()
 	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
 	tree:AddChild(button_display)
 	window.button_display = button_display
-	
-	local button_restore = AceGUI:Create("Button")
-	button_restore:SetText("Restore")
-	button_restore:SetWidth(80)
-	button_restore:SetHeight(22)
-	button_restore:ClearAllPoints()
-	button_restore:SetPoint("RIGHT", button_display.frame, "LEFT", -6, 0)
-	button_restore:SetCallback("OnClick", AngryAssign_RestorePage)
-	tree:AddChild(button_restore)
-	window.button_restore = button_restore
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
@@ -516,6 +507,16 @@ function AngryAssign:CreateWindow()
 	button_revert:SetCallback("OnClick", AngryAssign_RevertPage)
 	tree:AddChild(button_revert)
 	window.button_revert = button_revert
+	
+	local button_restore = AceGUI:Create("Button")
+	button_restore:SetText("Restore")
+	button_restore:SetWidth(80)
+	button_restore:SetHeight(22)
+	button_restore:ClearAllPoints()
+	button_restore:SetPoint("LEFT", button_revert.frame, "RIGHT", 6, 0)
+	button_restore:SetCallback("OnClick", AngryAssign_RestorePage)
+	tree:AddChild(button_restore)
+	window.button_restore = button_restore
 
 	window:PauseLayout()
 	local button_add = AceGUI:Create("Button")
@@ -861,12 +862,21 @@ function AngryAssign:CreateDisplay()
 	dragtex:SetBlendMode("ADD")
 	dragtex:SetPoint("CENTER", drag)
 
-	local glow = frame:CreateTexture(nil, "BACKGROUND")
+	local glow = text:CreateTexture(nil, "BACKGROUND")
 	glow:SetTexture("Interface\\LevelUp\\LevelUpTex")
-	glow:SetSize(326, 103)
-	glow:SetTextCoords(0.00195313, 0.63867188, 0.03710938. 0.23828125)
-	glow:SetColor(1, 0, 0, 1)
+	glow:SetSize(223, 115)
+	glow:SetTexCoord(0.56054688, 0.99609375, 0.24218750, 0.46679688)
+	glow:SetVertexColor(1, 0, 0, 1)
+	glow:SetAlpha(0)
 	self.display_glow = glow
+
+	local glow2 = text:CreateTexture(nil, "BACKGROUND")
+	glow2:SetTexture("Interface\\LevelUp\\LevelUpTex")
+	glow2:SetSize(418, 7)
+	glow2:SetTexCoord(0.00195313, 0.81835938, 0.01953125, 0.03320313)
+	glow2:SetVertexColor(1, 0, 0, 1)
+	glow2:SetAlpha(0)
+	self.display_glow2 = glow2
 
 	if AngryAssign_State.display.hidden then text:Hide() end
 	self:UpdateMedia()
@@ -895,8 +905,12 @@ function AngryAssign:UpdateDirection()
 		self.display_text:SetInsertMode("BOTTOM")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
+
 		self.display_glow:ClearAllPoints()
-		self.display_glow:SetPoint("BOTTOM", 0, 8)
+		self.display_glow:SetPoint("BOTTOM", 0, -4)
+		self.display_glow:SetTexCoord(0.56054688, 0.99609375, 0.24218750, 0.46679688)
+		self.display_glow2:ClearAllPoints()
+		self.display_glow2:SetPoint("TOP", self.display_glow, "BOTTOM", 0, 6)
 	else
 		self.display_text:ClearAllPoints()
 		self.display_text:SetPoint("TOPLEFT", 0, -8)
@@ -904,8 +918,12 @@ function AngryAssign:UpdateDirection()
 		self.display_text:SetInsertMode("TOP")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
+
 		self.display_glow:ClearAllPoints()
-		self.display_glow:SetPoint("TOP", 0, -8)
+		self.display_glow:SetPoint("TOP", 0, 4)
+		self.display_glow:SetTexCoord(0.56054688, 0.99609375, 0.46679688, 0.24218750)
+		self.display_glow2:ClearAllPoints()
+		self.display_glow2:SetPoint("BOTTOM", self.display_glow, "TOP", 0, 0)
 	end
 	if self.display_text:IsShown() then
 		self.display_text:Hide()
@@ -921,7 +939,47 @@ function AngryAssign:UpdateMedia()
 	self.display_text:SetFont(fontName, fontHeight, fontFlags)
 end
 
+local updateFlasher, updateFlasher2 = nil, nil
 function AngryAssign:DisplayUpdateNotification()
+	if updateFlasher == nil then
+		updateFlasher = self.display_glow:CreateAnimationGroup() 
+
+		-- Flashing in
+		local fade1 = updateFlasher:CreateAnimation("Alpha")
+		fade1:SetDuration(0.5)
+		fade1:SetChange(1)
+		fade1:SetOrder(1)
+
+		-- Holding it visible for 1 second
+		fade1:SetEndDelay(5)
+
+		-- Flashing out
+		local fade2 = updateFlasher:CreateAnimation("Alpha")
+		fade2:SetDuration(0.5)
+		fade2:SetChange(-1)
+		fade2:SetOrder(3)
+	end
+	if updateFlasher2 == nil then
+		updateFlasher2 = self.display_glow2:CreateAnimationGroup() 
+
+		-- Flashing in
+		local fade1 = updateFlasher2:CreateAnimation("Alpha")
+		fade1:SetDuration(0.5)
+		fade1:SetChange(1)
+		fade1:SetOrder(1)
+
+		-- Holding it visible for 1 second
+		fade1:SetEndDelay(5)
+
+		-- Flashing out
+		local fade2 = updateFlasher2:CreateAnimation("Alpha")
+		fade2:SetDuration(0.5)
+		fade2:SetChange(-1)
+		fade2:SetOrder(3)
+	end
+
+	updateFlasher:Play()
+	updateFlasher2:Play()
 end
 
 function AngryAssign:UpdateDisplayed()
