@@ -1,3 +1,12 @@
+## v0.2
+
+* Ability to highlight the group you are in. If you add "Group" to your highlight list, it will highlight G1/G2/etc if you are in that group
+* Highlights are case insensitive
+* Added config option to change highlight color
+* Added a visual notification when the displayed page is updated
+* Page backup system
+* Alphabetically sorting pages in edit window
+
 ## v0.1
 
 * Initial release

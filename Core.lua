@@ -1044,7 +1044,7 @@ function AngryAssign:UpdateDisplayed()
 			if token:lower() == 'group'then
 				token = 'G'..(currentGroup or 0)
 			end
-			text = text:gsub(ci_pattern(token), "|cff" .. highlightHex ..  token.."|r")
+			text = text:gsub(ci_pattern(token), "|cff" .. highlightHex .. "%0|r")
 		end
 
 		text = text:gsub(ci_pattern('{star}'), "{rt1}")
@@ -1137,7 +1137,7 @@ function AngryAssign:OnInitialize()
 				desc = "Creates a backup of all pages with their current contents",
 				func = function() 
 					self:CreateBackup()
-					self:Print("Created a backup of all pages")
+					self:Print("Created a backup of all pages.")
 				end
 			},
 			version = {
@@ -1169,7 +1169,7 @@ function AngryAssign:OnInitialize()
 						type = "input",
 						order = 1,
 						name = "Highlight",
-						desc = "A list of words to highlight on displayed pages (separated by spaces or punctuation)",
+						desc = "A list of words to highlight on displayed pages (separated by spaces or punctuation)\n\nUse 'Group' to highlight the current group you are in, ex. G2",
 						get = function(info) return AngryAssign_Config.highlight end,
 						set = function(info, val)
 							AngryAssign_Config.highlight = val

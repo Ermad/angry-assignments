@@ -1,1 +1,1 @@
-* some sort of brief graphical effect whenever current page gets edited
+* Only highlight restore button if contents are different form backup
