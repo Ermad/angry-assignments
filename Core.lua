@@ -29,6 +29,8 @@ local officerGuildRank = 2 -- The lowest officer guild rank
 local warnedOOD = false
 local versionList = {}
 
+local currentGroup = nil
+
 -- Pages Saved Variable Format 
 -- 	AngryAssign_Pages = {
 -- 		[Id] = { Id = "1231", Updated = time(), Name = "Name", Contents = "...", Backup = "..." },
@@ -275,6 +277,19 @@ function AngryAssign:GetRaidLeader()
 	return nil
 end
 
+function AngryAssign:GetCurrentGroup()
+	local player = UnitName('player')
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		for i = 1, GetNumGroupMembers() do
+			local name, _, subgroup = GetRaidRosterInfo(i)
+			if name == player then
+				return subgroup
+			end
+		end
+	end
+	return nil
+end
+
 function AngryAssign:VersionCheckOutput()
 	local versionliststr = ""
 	for i,v in pairs(versionList) do
@@ -284,15 +299,17 @@ function AngryAssign:VersionCheckOutput()
 	versionliststr = ""
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
-			local name = GetRaidRosterInfo(i)	
-			local found = false
-			for i,v in pairs(versionList) do
-				if v["name"] == name then
-					found = true
-					break
+			local name, _, _, _, _, _, _, _, online = GetRaidRosterInfo(i)	
+			if online then
+				local found = false
+				for i,v in pairs(versionList) do
+					if v["name"] == name then
+						found = true
+						break
+					end
 				end
+				if not found then versionliststr = versionliststr .. " " .. name end
 			end
-			if not found then versionliststr = versionliststr .. " " .. name end
 		end
 	end
 	if versionliststr ~= "" then self:Print("Not running:"..versionliststr) end
@@ -573,9 +590,17 @@ function AngryAssign:SelectedUpdated(sender)
 end
 
 function AngryAssign:GetTree()
-	local ret = {}
 
+	local sortTable = {}
 	for _, page in pairs(AngryAssign_Pages) do
+		tinsert(sortTable, { Id = page.Id, Name = page.Name })
+	end
+
+	table.sort( sortTable, function(a,b) return a.Name < b.Name end)
+
+
+	local ret = {}
+	for _, page in ipairs(sortTable) do
 		if page.Id == AngryAssign_State.displayed then
 			tinsert(ret, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
 		else
@@ -982,31 +1007,61 @@ function AngryAssign:DisplayUpdateNotification()
 	updateFlasher2:Play()
 end
 
+local function ci_pattern(pattern)
+	local p = pattern:gsub("(%%?)(.)", function(percent, letter)
+		if percent ~= "" or not letter:match("%a") then
+			return percent .. letter
+		else
+			return string.format("[%s%s]", letter:lower(), letter:upper())
+		end
+	end)
+	return p
+end
+
+local function RGBToHex(r, g, b)
+	r = math.ceil(255 * r)
+	g = math.ceil(255 * g)
+	b = math.ceil(255 * b)
+	return string.format("%02x%02x%02x", r, g, b)
+end
+
+function AngryAssign:UpdateDisplayedIfNewGroup()
+	local newGroup = self:GetCurrentGroup()
+	if newGroup ~= currentGroup then
+		currentGroup = newGroup
+		self:UpdateDisplayed()
+	end
+end
+
 function AngryAssign:UpdateDisplayed()
 	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
 	if page then
 		local text = page.Contents
 
+		local highlightHex = RGBToHex(AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColorB)
 		text = text:gsub("||", "|")
 		for token in string.gmatch( AngryAssign_Config.highlight or "" , "[^%s%p]+") do
-			text = text:gsub(token, NORMAL_FONT_COLOR_CODE ..token.."|r")
+			if token:lower() == 'group'then
+				token = 'G'..(currentGroup or 0)
+			end
+			text = text:gsub(ci_pattern(token), "|cff" .. highlightHex ..  token.."|r")
 		end
 
-		text = text:gsub("{[Ss][Tt][Aa][Rr]}", "{rt1}")
-			:gsub("{[Cc][Ii][Rr][Cc][Ll][Ee]}", "{rt2}")
-			:gsub("{[Dd][Ii][Aa][Mm][Oo][Nn][Dd]}", "{rt3}")
-			:gsub("{[Tt][Rr][Ii][Aa][Nn][Gg][Ll][Ee]}", "{rt4}")
-			:gsub("{[Mm][Oo][Oo][Nn]}", "{rt5}")
-			:gsub("{[Ss][Qq][Uu][Aa][Rr][Ee]}", "{rt6}")
-			:gsub("{[Cc][Rr][Oo][Ss][Ss]}", "{rt7}")
-			:gsub("{[Xx]}", "{rt7}")
-			:gsub("{[Ss][Kk][Uu][Ll][Ll]}", "{rt8}")
-			:gsub("{[Rr][Tt]([1-8])}", "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
-			:gsub("{[Hh][Ee][Aa][Ll][Tt][Hh][Ss][Tt][Oo][Nn][Ee]}", "{hs}")
-			:gsub("{[Hh][Ss]}", "|TInterface\\Icons\\INV_Stone_04:0|t")
-			:gsub("{[Bb][Ll][Oo][Oo][Dd][Ll][Uu][Ss][Tt]}", "{bl}")
-			:gsub("{[Bb][Ll]}", "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
-			:gsub("{[Ii][Cc][Oo][Nn]%s+([%w_]+)}", "|TInterface\\Icons\\%1:0|t")
+		text = text:gsub(ci_pattern('{star}'), "{rt1}")
+			:gsub(ci_pattern('{circle}'), "{rt2}")
+			:gsub(ci_pattern('{diamond}'), "{rt3}")
+			:gsub(ci_pattern('{triangle}'), "{rt4}")
+			:gsub(ci_pattern('{moon}'), "{rt5}")
+			:gsub(ci_pattern('{square}'), "{rt6}")
+			:gsub(ci_pattern('{cross}'), "{rt7}")
+			:gsub(ci_pattern('{x}'), "{rt7}")
+			:gsub(ci_pattern('{skill}'), "{rt8}")
+			:gsub(ci_pattern('{rt([1-8])}'), "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%1:0|t" )
+			:gsub(ci_pattern('{healthstone}'), "{hs}")
+			:gsub(ci_pattern('{hs}'), "|TInterface\\Icons\\INV_Stone_04:0|t")
+			:gsub(ci_pattern('{bloodlust}'), "{bl}")
+			:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
+			:gsub(ci_pattern('{icon%s+([%w_]+)}'), "|TInterface\\Icons\\%1:0|t")
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
@@ -1035,7 +1090,9 @@ function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false } end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 	if AngryAssign_Config == nil then AngryAssign_Config = { scale = 1, fontName = "Friz Quadrata TT", fontHeight = 12, fontFlags = "NONE" } end
-
+	if not AngryAssign_Config.highlightColorR then AngryAssign_Config.highlightColorR = 1 end
+	if not AngryAssign_Config.highlightColorG then AngryAssign_Config.highlightColorG = 0.824 end
+	if not AngryAssign_Config.highlightColorB then AngryAssign_Config.highlightColorB = 0 end
 
 	local options = {
 		name = "Angry Assignments",
@@ -1080,6 +1137,7 @@ function AngryAssign:OnInitialize()
 				desc = "Creates a backup of all pages with their current contents",
 				func = function() 
 					self:CreateBackup()
+					self:Print("Created a backup of all pages")
 				end
 			},
 			version = {
@@ -1118,9 +1176,22 @@ function AngryAssign:OnInitialize()
 							self:UpdateDisplayed()
 						end
 					},
+					highlightcolor = {
+						type = "color",
+						order = 2,
+						name = "Highlight Color",
+						desc = "The color used to emphasize highlighted words",
+						get = function(info) return AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColorB end,
+						set = function(info, r, g, b)
+							AngryAssign_Config.highlightColorR = r
+							AngryAssign_Config.highlightColorG = g
+							AngryAssign_Config.highlightColorB = b
+							self:UpdateDisplayed()
+						end
+					},
 					hideoncombat = {
 						type = "toggle",
-						order = 2,
+						order = 3,
 						name = "Hide on Combat",
 						desc = "Enable to hide display frame upon entering combat",
 						get = function(info) return AngryAssign_Config.hideoncombat end,
@@ -1130,7 +1201,7 @@ function AngryAssign:OnInitialize()
 					},
 					scale = {
 						type = "range",
-						order = 3,
+						order = 4,
 						name = "Scale",
 						desc = function() 
 							return "Sets the scale of the edit window"
@@ -1207,6 +1278,7 @@ function AngryAssign:OnInitialize()
 end
 
 function AngryAssign:OnEnable()
+	currentGroup = self:GetCurrentGroup()
 	self:CreateDisplay()
 
 	self:RegisterComm(comPrefix, "ReceiveMessage")
@@ -1228,10 +1300,12 @@ end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
 	self:SendRequestDisplay()
+	self:UpdateDisplayedIfNewGroup()
 end
 
 function AngryAssign:GROUP_JOINED()
 	self:SendRequestDisplay()
+	self:UpdateDisplayedIfNewGroup()
 end
 
 function AngryAssign:PLAYER_REGEN_DISABLED()
@@ -1244,6 +1318,8 @@ function AngryAssign:GROUP_ROSTER_UPDATE()
 	self:UpdateSelected()
 	if AngryAssign_State.displayed and not IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		self:ClearDisplayed()
+	else
+		self:UpdateDisplayedIfNewGroup()
 	end
 end
 
