@@ -460,7 +460,7 @@ function AngryAssign:CreateWindow()
 	window:SetTitle("Angry Assignments")
 	window:SetStatusText("")
 	window:SetLayout("Flow")
-	if AngryAssign_Config.scale then window.frame:SetScale(AngryAssign_Config.scale) end
+	if AngryAssign:GetConfig('scale') then window.frame:SetScale( AngryAssign:GetConfig('scale') ) end
 	window:SetStatusTable(AngryAssign_State.window)
 	window:Hide()
 	AngryAssign.window = window
@@ -956,9 +956,9 @@ function AngryAssign:UpdateDirection()
 end
 
 function AngryAssign:UpdateMedia()
-	local fontName = LSM:Fetch("font", AngryAssign_Config.fontName)
-	local fontHeight = AngryAssign_Config.fontHeight
-	local fontFlags = AngryAssign_Config.fontFlags
+	local fontName = LSM:Fetch("font", AngryAssign:GetConfig('fontName'))
+	local fontHeight = AngryAssign:GetConfig('fontHeight')
+	local fontFlags = AngryAssign:GetConfig('fontFlags')
 	self.display_text:SetFont(fontName, fontHeight, fontFlags)
 end
 
@@ -1036,9 +1036,9 @@ function AngryAssign:UpdateDisplayed()
 	if page then
 		local text = page.Contents
 
-		local highlightHex = RGBToHex(AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColorB)
+		local highlightHex = RGBToHex( AngryAssign:GetConfig('highlightColorR'), AngryAssign:GetConfig('highlightColorG'), AngryAssign:GetConfig('highlightColorB'))
 		text = text:gsub("||", "|")
-		for token in string.gmatch( AngryAssign_Config.highlight or "" , "[^%s%p]+") do
+		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "[^%s%p]+") do
 			if token:lower() == 'group'then
 				token = 'G'..(currentGroup or 0)
 			end
@@ -1084,13 +1084,39 @@ end
 -- Addon Setup --
 -----------------
 
+local configDefaults = {
+	scale = 1,
+	hideoncombat = false,
+	fontName = "Friz Quadrata TT",
+	fontHeight = 12,
+	fontFlags = "NONE",
+	highlight = "",
+	highlightColorR = 1,
+	highlightColorG = 0.824,
+	highlightColorB = 0
+}
+function AngryAssign:GetConfig(key)
+	if AngryAssign_Config[key] == nil then
+		return configDefaults[key]
+	else
+		return AngryAssign_Config[key]
+	end
+end
+
+function AngryAssign:SetConfig(key, value)
+	if configDefaults[key] == value then
+		AngryAssign_Config[key] = nil
+	else
+		AngryAssign_Config[key] = value
+	end
+end
+
 function AngryAssign:OnInitialize()
-	if AngryAssign_State == nil then AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false } end
+	if AngryAssign_State == nil then
+		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false }
+	end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
-	if AngryAssign_Config == nil then AngryAssign_Config = { scale = 1, fontName = "Friz Quadrata TT", fontHeight = 12, fontFlags = "NONE" } end
-	if not AngryAssign_Config.highlightColorR then AngryAssign_Config.highlightColorR = 1 end
-	if not AngryAssign_Config.highlightColorG then AngryAssign_Config.highlightColorG = 0.824 end
-	if not AngryAssign_Config.highlightColorB then AngryAssign_Config.highlightColorB = 0 end
+	if AngryAssign_Config == nil then AngryAssign_Config = { } end
 
 	local options = {
 		name = "Angry Assignments",
@@ -1168,9 +1194,9 @@ function AngryAssign:OnInitialize()
 						order = 1,
 						name = "Highlight",
 						desc = "A list of words to highlight on displayed pages (separated by spaces or punctuation)\n\nUse 'Group' to highlight the current group you are in, ex. G2",
-						get = function(info) return AngryAssign_Config.highlight end,
+						get = function(info) return self:GetConfg('highlight') end,
 						set = function(info, val)
-							AngryAssign_Config.highlight = val
+							self:SetConfig('highlight', val)
 							self:UpdateDisplayed()
 						end
 					},
@@ -1179,11 +1205,11 @@ function AngryAssign:OnInitialize()
 						order = 2,
 						name = "Highlight Color",
 						desc = "The color used to emphasize highlighted words",
-						get = function(info) return AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColorB end,
+						get = function(info) return self:GetConfg('highlightColorR'), self:GetConfg('highlightColorG'), self:GetConfg('highlightColorB') end,
 						set = function(info, r, g, b)
-							AngryAssign_Config.highlightColorR = r
-							AngryAssign_Config.highlightColorG = g
-							AngryAssign_Config.highlightColorB = b
+							self:SetConfig('highlightColorR', r)
+							self:SetConfig('highlightColorG', g)
+							self:SetConfig('highlightColorB', b)
 							self:UpdateDisplayed()
 						end
 					},
@@ -1192,9 +1218,9 @@ function AngryAssign:OnInitialize()
 						order = 3,
 						name = "Hide on Combat",
 						desc = "Enable to hide display frame upon entering combat",
-						get = function(info) return AngryAssign_Config.hideoncombat end,
+						get = function(info) return self:GetConfg('hideoncombat') end,
 						set = function(info, val)
-							AngryAssign_Config.hideoncombat = val
+							self:SetConfg('hideoncombat', val)
 						end
 					},
 					scale = {
@@ -1206,9 +1232,9 @@ function AngryAssign:OnInitialize()
 						end,
 						min = 0.3,
 						max = 3,
-						get = function(info) return AngryAssign_Config.scale end,
+						get = function(info) return self:GetConfg('scale') end,
 						set = function(info, val)
-							AngryAssign_Config.scale = val
+							self:SetConfg('scale', val)
 							if AngryAssign.window then AngryAssign.window.frame:SetScale(val) end
 						end
 					}
@@ -1227,11 +1253,9 @@ function AngryAssign:OnInitialize()
 						name = 'Face',
 						desc = 'Sets the font face used to display a page',
 						values = LSM:HashTable("font"),
-						get = function()
-							return AngryAssign_Config.fontName
-						end,
-						set = function(self,key)
-							AngryAssign_Config.fontName = key
+						get = function(info) return self:GetConfg('fontName') end,
+						set = function(info, val)
+							self:SetConfg('fontName', val)
 							self:UpdateMedia()
 						end
 					},
@@ -1245,9 +1269,9 @@ function AngryAssign:OnInitialize()
 						min = 6,
 						max = 24,
 						step = 1,
-						get = function(info) return AngryAssign_Config.fontHeight end,
+						get = function(info) return self:GetConfg('fontHeight') end,
 						set = function(info, val)
-							AngryAssign_Config.fontHeight = val
+							self:SetConfg('fontHeight', val)
 							self:UpdateMedia()
 						end
 					},
@@ -1259,9 +1283,9 @@ function AngryAssign:OnInitialize()
 							return "Sets the font outline used to display a page"
 						end,
 						values = { ["NONE"] = "None", ["OUTLINE"] = "Outline", ["THICKOUTLINE"] = "Thick Outline", ["MONOCHROMEOUTLINE"] = "Monochrome" },
-						get = function(info) return AngryAssign_Config.fontFlags end,
+						get = function(info) return self:GetConfg('fontFlags') end,
 						set = function(info, val)
-							AngryAssign_Config.fontFlags = val
+							self:SetConfg('fontFlags', val)
 							self:UpdateMedia()
 						end
 					}
@@ -1307,7 +1331,7 @@ function AngryAssign:GROUP_JOINED()
 end
 
 function AngryAssign:PLAYER_REGEN_DISABLED()
-	if AngryAssign_Config.hideoncombat then
+	if AngryAssign:GetConfig('hideoncombat') then
 		self:HideDisplay()
 	end
 end
