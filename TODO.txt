@@ -1,1 +1,2 @@
 * Only highlight restore button if contents are different form backup
+* Clear Display button

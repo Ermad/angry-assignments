@@ -626,7 +626,7 @@ function AngryAssign:UpdateSelected(destructive)
 		else
 			self.window.text:SetText("")
 		end
-		self.window.text.button:Disabled()
+		self.window.text.button:Disable()
 	end
 	if page and permission then
 		self.window.button_rename:SetDisabled(false)
@@ -1194,7 +1194,7 @@ function AngryAssign:OnInitialize()
 						order = 1,
 						name = "Highlight",
 						desc = "A list of words to highlight on displayed pages (separated by spaces or punctuation)\n\nUse 'Group' to highlight the current group you are in, ex. G2",
-						get = function(info) return self:GetConfg('highlight') end,
+						get = function(info) return self:GetConfig('highlight') end,
 						set = function(info, val)
 							self:SetConfig('highlight', val)
 							self:UpdateDisplayed()
@@ -1205,7 +1205,7 @@ function AngryAssign:OnInitialize()
 						order = 2,
 						name = "Highlight Color",
 						desc = "The color used to emphasize highlighted words",
-						get = function(info) return self:GetConfg('highlightColorR'), self:GetConfg('highlightColorG'), self:GetConfg('highlightColorB') end,
+						get = function(info) return self:GetConfig('highlightColorR'), self:GetConfig('highlightColorG'), self:GetConfig('highlightColorB') end,
 						set = function(info, r, g, b)
 							self:SetConfig('highlightColorR', r)
 							self:SetConfig('highlightColorG', g)
@@ -1218,9 +1218,10 @@ function AngryAssign:OnInitialize()
 						order = 3,
 						name = "Hide on Combat",
 						desc = "Enable to hide display frame upon entering combat",
-						get = function(info) return self:GetConfg('hideoncombat') end,
+						get = function(info) return self:GetConfig('hideoncombat') end,
 						set = function(info, val)
-							self:SetConfg('hideoncombat', val)
+							self:SetConfig('hideoncombat', val)
+
 						end
 					},
 					scale = {
@@ -1232,9 +1233,9 @@ function AngryAssign:OnInitialize()
 						end,
 						min = 0.3,
 						max = 3,
-						get = function(info) return self:GetConfg('scale') end,
+						get = function(info) return self:GetConfig('scale') end,
 						set = function(info, val)
-							self:SetConfg('scale', val)
+							self:SetConfig('scale', val)
 							if AngryAssign.window then AngryAssign.window.frame:SetScale(val) end
 						end
 					}
@@ -1253,9 +1254,9 @@ function AngryAssign:OnInitialize()
 						name = 'Face',
 						desc = 'Sets the font face used to display a page',
 						values = LSM:HashTable("font"),
-						get = function(info) return self:GetConfg('fontName') end,
+						get = function(info) return self:GetConfig('fontName') end,
 						set = function(info, val)
-							self:SetConfg('fontName', val)
+							self:SetConfig('fontName', val)
 							self:UpdateMedia()
 						end
 					},
@@ -1269,9 +1270,9 @@ function AngryAssign:OnInitialize()
 						min = 6,
 						max = 24,
 						step = 1,
-						get = function(info) return self:GetConfg('fontHeight') end,
+						get = function(info) return self:GetConfig('fontHeight') end,
 						set = function(info, val)
-							self:SetConfg('fontHeight', val)
+							self:SetConfig('fontHeight', val)
 							self:UpdateMedia()
 						end
 					},
@@ -1283,9 +1284,9 @@ function AngryAssign:OnInitialize()
 							return "Sets the font outline used to display a page"
 						end,
 						values = { ["NONE"] = "None", ["OUTLINE"] = "Outline", ["THICKOUTLINE"] = "Thick Outline", ["MONOCHROMEOUTLINE"] = "Monochrome" },
-						get = function(info) return self:GetConfg('fontFlags') end,
+						get = function(info) return self:GetConfig('fontFlags') end,
 						set = function(info, val)
-							self:SetConfg('fontFlags', val)
+							self:SetConfig('fontFlags', val)
 							self:UpdateMedia()
 						end
 					}
