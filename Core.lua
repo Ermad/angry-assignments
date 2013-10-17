@@ -1016,13 +1016,6 @@ local function ci_pattern(pattern)
 	return p
 end
 
-local function RGBToHex(r, g, b)
-	r = math.ceil(255 * r)
-	g = math.ceil(255 * g)
-	b = math.ceil(255 * b)
-	return string.format("%02x%02x%02x", r, g, b)
-end
-
 function AngryAssign:UpdateDisplayedIfNewGroup()
 	local newGroup = self:GetCurrentGroup()
 	if newGroup ~= currentGroup then
@@ -1036,7 +1029,7 @@ function AngryAssign:UpdateDisplayed()
 	if page then
 		local text = page.Contents
 
-		local highlightHex = RGBToHex( AngryAssign:GetConfig('highlightColorR'), AngryAssign:GetConfig('highlightColorG'), AngryAssign:GetConfig('highlightColorB'))
+		local highlightHex = self:GetConfig('highlightColor')
 		text = text:gsub("||", "|")
 		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "[^%s%p]+") do
 			if token:lower() == 'group'then
@@ -1084,6 +1077,13 @@ end
 -- Addon Setup --
 -----------------
 
+local function RGBToHex(r, g, b)
+	r = math.ceil(255 * r)
+	g = math.ceil(255 * g)
+	b = math.ceil(255 * b)
+	return string.format("%02x%02x%02x", r, g, b)
+end
+
 local configDefaults = {
 	scale = 1,
 	hideoncombat = false,
@@ -1091,9 +1091,7 @@ local configDefaults = {
 	fontHeight = 12,
 	fontFlags = "NONE",
 	highlight = "",
-	highlightColorR = 1,
-	highlightColorG = 0.824,
-	highlightColorB = 0
+	highlightColor = "FFD200"
 }
 function AngryAssign:GetConfig(key)
 	if AngryAssign_Config[key] == nil then
@@ -1117,6 +1115,12 @@ function AngryAssign:OnInitialize()
 	end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 	if AngryAssign_Config == nil then AngryAssign_Config = { } end
+	if not AngryAssign_Config.highlightColor and AngryAssign_Config.highlightColorR and AngryAssign_Config.highlightColorG and AngryAssign_Config.highlightColorB then
+		AngryAssign_Config.highlightColor = RGBToHex( AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColor )
+		AngryAssign_Config.highlightColorR = nil
+		AngryAssign_Config.highlightColorG = nil
+		AngryAssign_Config.highlightColorB = nil
+	end
 
 	local options = {
 		name = "Angry Assignments",
@@ -1205,11 +1209,12 @@ function AngryAssign:OnInitialize()
 						order = 2,
 						name = "Highlight Color",
 						desc = "The color used to emphasize highlighted words",
-						get = function(info) return self:GetConfig('highlightColorR'), self:GetConfig('highlightColorG'), self:GetConfig('highlightColorB') end,
+						get = function(info)
+							local hex = self:GetConfig('highlightColor')
+							return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255
+						end,
 						set = function(info, r, g, b)
-							self:SetConfig('highlightColorR', r)
-							self:SetConfig('highlightColorG', g)
-							self:SetConfig('highlightColorB', b)
+							self:SetConfig('highlightColor', RGBToHex(r, g, b))
 							self:UpdateDisplayed()
 						end
 					},

@@ -14,4 +14,3 @@
   <Include file="libs\LibCompress\lib.xml"/>
   <Script file="libs\LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua"/>
 </Ui>
-
