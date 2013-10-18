@@ -147,7 +147,7 @@ function AngryAssign:ProcessMessage(sender, data)
 			self:UpdateTree()
 			self:UpdateDisplayed()
 			self:ShowDisplay()
-			self:DisplayUpdateNotification()
+			if id then self:DisplayUpdateNotification() end
 		end
 
 	elseif cmd == "REQUEST_DISPLAY" then
@@ -435,6 +435,13 @@ local function AngryAssign_DisplayPage(widget, event, value)
 	end
 end
 
+local function AngryAssign_ClearPage(widget, event, value)
+	if not AngryAssign:PermissionCheck() then return end
+
+	AngryAssign:ClearDisplayed()
+	AngryAssign:SendDisplay( nil, true )
+end
+
 local function AngryAssign_TextChanged(widget, event, value)
 	AngryAssign.window.button_revert:SetDisabled(false)
 	AngryAssign.window.button_restore:SetDisabled(false)
@@ -469,11 +476,6 @@ function AngryAssign:CreateWindow()
 	window.frame:SetFrameStrata("HIGH")
 	window.frame:SetFrameLevel(1)
 	tinsert(UISpecialFrames, "AngryAssign_Window")
-
-	local version = AngryAssign_Version
-	if version:sub(1,1) == "@" then version = "dev" end
-	window:SetStatusText(version)
-	window.statustext:SetJustifyH("RIGHT")
 
 	local tree = AceGUI:Create("TreeGroup")
 	tree:SetTree( self:GetTree() )
@@ -563,6 +565,16 @@ function AngryAssign:CreateWindow()
 	window:AddChild(button_delete)
 	window.button_delete = button_delete
 
+	local button_clear = AceGUI:Create("Button")
+	button_clear:SetText("Clear Displayed")
+	button_clear:SetWidth(128)
+	button_clear:SetHeight(19)
+	button_clear:ClearAllPoints()
+	button_clear:SetPoint("BOTTOMRIGHT", window.frame, "BOTTOMRIGHT", -135, 18)
+	button_clear:SetCallback("OnClick", AngryAssign_ClearPage)
+	window:AddChild(button_clear)
+	window.button_clear = button_clear
+
 	self:UpdateSelected(true)
 end
 
@@ -648,8 +660,10 @@ function AngryAssign:UpdateSelected(destructive)
 	end
 	if permission then
 		self.window.button_add:SetDisabled(false)
+		self.window.button_clear:SetDisabled(false)
 	else
 		self.window.button_add:SetDisabled(true)
+		self.window.button_clear:SetDisabled(false)
 	end
 end
 
@@ -1091,7 +1105,7 @@ local configDefaults = {
 	fontHeight = 12,
 	fontFlags = "NONE",
 	highlight = "",
-	highlightColor = "FFD200"
+	highlightColor = "ffd200"
 }
 function AngryAssign:GetConfig(key)
 	if AngryAssign_Config[key] == nil then
@@ -1116,7 +1130,7 @@ function AngryAssign:OnInitialize()
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 	if AngryAssign_Config == nil then AngryAssign_Config = { } end
 	if not AngryAssign_Config.highlightColor and AngryAssign_Config.highlightColorR and AngryAssign_Config.highlightColorG and AngryAssign_Config.highlightColorB then
-		AngryAssign_Config.highlightColor = RGBToHex( AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColor )
+		AngryAssign_Config.highlightColor = RGBToHex( AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColorB )
 		AngryAssign_Config.highlightColorR = nil
 		AngryAssign_Config.highlightColorG = nil
 		AngryAssign_Config.highlightColorB = nil
