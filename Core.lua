@@ -1123,7 +1123,13 @@ function AngryAssign:SetConfig(key, value)
 	end
 end
 
-local blizOptionsPanel
+function AngryAssign:RestoreDefaults()
+	AngryAssign_Config = {}
+	self:UpdateMedia()
+	self:UpdateDisplayed()
+	LibStub("AceConfigRegistry-3.0"):NotifyChange("AngryAssign")
+end
+
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then
 		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false }
@@ -1137,8 +1143,11 @@ function AngryAssign:OnInitialize()
 		AngryAssign_Config.highlightColorB = nil
 	end
 
+	local ver = AngryAssign_Version
+	if ver:sub(1,1) == "@" then ver = "dev" end
+	
 	local options = {
-		name = "Angry Assignments "..AngryAssign_Version,
+		name = "Angry Assignments "..ver,
 		handler = AngryAssign,
 		type = "group",
 		args = {
@@ -1171,6 +1180,17 @@ function AngryAssign:OnInitialize()
 					self:UpdateDisplayed()
 					if self.window then self.window.tree:SetSelected(nil) end
 					self:Print("All pages have been deleted.")
+				end
+			},
+			defaults = {
+				type = "execute",
+				name = "Restore Defaults",
+				desc = "Restore configuration values to their default settings",
+				order = 9,
+				hidden = true,
+				cmdHidden = false,
+				func = function()
+					self:RestoreDefaults()
 				end
 			},
 			config = {
@@ -1326,9 +1346,10 @@ function AngryAssign:OnInitialize()
 		}
 	}
 
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("Angry Assignments", options, {"aa", "angryassign"})
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("AngryAssign", options, {"aa", "angryassign"})
 
-	blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Angry Assignments", "Angry Assignments")
+	local blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Assignments")
+	blizOptionsPanel.default = function() self:RestoreDefaults() end
 end
 
 function AngryAssign:OnEnable()
