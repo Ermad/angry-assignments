@@ -1045,11 +1045,19 @@ function AngryAssign:UpdateDisplayed()
 
 		local highlightHex = self:GetConfig('highlightColor')
 		text = text:gsub("||", "|")
-		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "[^%s%p]+") do
-			if token:lower() == 'group'then
+		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "%w+") do
+			token = token:lower()
+			if token == 'group'then
 				token = 'G'..(currentGroup or 0)
 			end
-			text = text:gsub(ci_pattern(token), "|cff" .. highlightHex .. "%0|r")
+			local pattern = ci_pattern(token)
+			text = text:gsub("(%w+)", function(word)
+				if token == word then
+					return string.format("|cff%s%s|r", highlightHex, word)
+				else
+					return word
+				end
+			end)
 		end
 
 		text = text:gsub(ci_pattern('{star}'), "{rt1}")
