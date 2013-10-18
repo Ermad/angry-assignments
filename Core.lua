@@ -426,7 +426,7 @@ local function AngryAssign_DisplayPage(widget, event, value)
 	AngryAssign:SendPage( id, true )
 	AngryAssign:SendDisplay( id, true )
 	
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) and AngryAssign_State.displayed ~= id then
+	if (true or IsInRaid(LE_PARTY_CATEGORY_HOME)) and AngryAssign_State.displayed ~= id then
 		AngryAssign_State.displayed = AngryAssign:SelectedId()
 		AngryAssign:UpdateDisplayed()
 		AngryAssign:ShowDisplay()
