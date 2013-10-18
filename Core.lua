@@ -1123,6 +1123,7 @@ function AngryAssign:SetConfig(key, value)
 	end
 end
 
+local blizOptionsPanel
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then
 		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false }
@@ -1137,7 +1138,7 @@ function AngryAssign:OnInitialize()
 	end
 
 	local options = {
-		name = "Angry Assignments",
+		name = "Angry Assignments "..AngryAssign_Version,
 		handler = AngryAssign,
 		type = "group",
 		args = {
@@ -1170,6 +1171,17 @@ function AngryAssign:OnInitialize()
 					self:UpdateDisplayed()
 					if self.window then self.window.tree:SetSelected(nil) end
 					self:Print("All pages have been deleted.")
+				end
+			},
+			config = {
+				type = "execute",
+				name = "Config",
+				desc = "Opens the addon configuration panel",
+				order = 0,
+				hidden = true,
+				cmdHidden = false,
+				func = function()
+					InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
 				end
 			},
 			backup = {
@@ -1316,7 +1328,7 @@ function AngryAssign:OnInitialize()
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Angry Assignments", options, {"aa", "angryassign"})
 
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Angry Assignments", "Angry Assignments")
+	blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Angry Assignments", "Angry Assignments")
 end
 
 function AngryAssign:OnEnable()

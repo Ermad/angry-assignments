@@ -1,3 +1,7 @@
+## v0.3
+
+* Added command '/aa config' to open the configuration panel
+
 ## v0.2
 
 * Ability to highlight the group you are in. If you add "Group" to your highlight list, it will highlight G1/G2/etc if you are in that group
