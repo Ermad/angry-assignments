@@ -1,7 +1,6 @@
 ## v0.3
 
-* Added command '/aa config' to open the configuration panel
-* "Default" button in addon configuration screen now works
+* "Defaults" button in addon configuration screen now works
 
 ## v0.2
 

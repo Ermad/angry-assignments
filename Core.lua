@@ -1050,9 +1050,8 @@ function AngryAssign:UpdateDisplayed()
 			if token == 'group'then
 				token = 'G'..(currentGroup or 0)
 			end
-			local pattern = ci_pattern(token)
 			text = text:gsub("(%w+)", function(word)
-				if token == word then
+				if token == word:lower() then
 					return string.format("|cff%s%s|r", highlightHex, word)
 				else
 					return word
@@ -1180,6 +1179,7 @@ function AngryAssign:OnInitialize()
 				order = 4,
 				hidden = true,
 				cmdHidden = false,
+				confirm = true,
 				func = function()
 					AngryAssign_State.displayed = nil
 					AngryAssign_Pages = {}
@@ -1197,19 +1197,9 @@ function AngryAssign:OnInitialize()
 				order = 9,
 				hidden = true,
 				cmdHidden = false,
+				confirm = true,
 				func = function()
 					self:RestoreDefaults()
-				end
-			},
-			config = {
-				type = "execute",
-				name = "Config",
-				desc = "Opens the addon configuration panel",
-				order = 0,
-				hidden = true,
-				cmdHidden = false,
-				func = function()
-					InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
 				end
 			},
 			backup = {
@@ -1252,6 +1242,7 @@ function AngryAssign:OnInitialize()
 						order = 1,
 						name = "Highlight",
 						desc = "A list of words to highlight on displayed pages (separated by spaces or punctuation)\n\nUse 'Group' to highlight the current group you are in, ex. G2",
+						width = "double",
 						get = function(info) return self:GetConfig('highlight') end,
 						set = function(info, val)
 							self:SetConfig('highlight', val)
