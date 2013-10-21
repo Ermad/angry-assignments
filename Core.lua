@@ -973,6 +973,9 @@ function AngryAssign:UpdateMedia()
 	local fontName = LSM:Fetch("font", AngryAssign:GetConfig('fontName'))
 	local fontHeight = AngryAssign:GetConfig('fontHeight')
 	local fontFlags = AngryAssign:GetConfig('fontFlags')
+
+	local hex = self:GetConfig('color')
+	self.display_text:SetTextColor(tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255)
 	self.display_text:SetFont(fontName, fontHeight, fontFlags)
 end
 
@@ -1112,7 +1115,8 @@ local configDefaults = {
 	fontHeight = 12,
 	fontFlags = "NONE",
 	highlight = "",
-	highlightColor = "ffd200"
+	highlightColor = "ffd200",
+	color = "ffffff"
 }
 function AngryAssign:GetConfig(key)
 	if AngryAssign_Config[key] == nil then
@@ -1242,24 +1246,9 @@ function AngryAssign:OnInitialize()
 						order = 1,
 						name = "Highlight",
 						desc = "A list of words to highlight on displayed pages (separated by spaces or punctuation)\n\nUse 'Group' to highlight the current group you are in, ex. G2",
-						width = "double",
 						get = function(info) return self:GetConfig('highlight') end,
 						set = function(info, val)
 							self:SetConfig('highlight', val)
-							self:UpdateDisplayed()
-						end
-					},
-					highlightcolor = {
-						type = "color",
-						order = 2,
-						name = "Highlight Color",
-						desc = "The color used to emphasize highlighted words",
-						get = function(info)
-							local hex = self:GetConfig('highlightColor')
-							return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255
-						end,
-						set = function(info, r, g, b)
-							self:SetConfig('highlightColor', RGBToHex(r, g, b))
 							self:UpdateDisplayed()
 						end
 					},
@@ -1338,6 +1327,35 @@ function AngryAssign:OnInitialize()
 						set = function(info, val)
 							self:SetConfig('fontFlags', val)
 							self:UpdateMedia()
+						end
+					},
+					color = {
+						type = "color",
+						order = 4,
+						name = "Normal Color",
+						desc = "The normal color used to display assignments",
+						get = function(info)
+							local hex = self:GetConfig('color')
+							return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255
+						end,
+						set = function(info, r, g, b)
+							self:SetConfig('color', RGBToHex(r, g, b))
+							self:UpdateMedia()
+							self:UpdateDisplayed()
+						end
+					},
+					highlightcolor = {
+						type = "color",
+						order = 5,
+						name = "Highlight Color",
+						desc = "The color used to emphasize highlighted words",
+						get = function(info)
+							local hex = self:GetConfig('highlightColor')
+							return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255
+						end,
+						set = function(info, r, g, b)
+							self:SetConfig('highlightColor', RGBToHex(r, g, b))
+							self:UpdateDisplayed()
 						end
 					}
 				}
