@@ -1375,7 +1375,7 @@ function AngryAssign:OnEnable()
 
 	self:RegisterComm(comPrefix, "ReceiveMessage")
 	
-	self:ScheduleTimer("AfterEnable", 6)
+	self:ScheduleTimer("AfterEnable", 4)
 
 	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
 	self:RegisterEvent("GROUP_JOINED")
@@ -1418,4 +1418,5 @@ end
 function AngryAssign:AfterEnable()
 	self:SendMessage({ "VER_QUERY" })
 	self:SendRequestDisplay()
+	self:UpdateDisplayedIfNewGroup()
 end
