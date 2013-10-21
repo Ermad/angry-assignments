@@ -1141,6 +1141,7 @@ function AngryAssign:RestoreDefaults()
 	LibStub("AceConfigRegistry-3.0"):NotifyChange("AngryAssign")
 end
 
+local blizOptionsPanel
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then
 		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false }
@@ -1168,6 +1169,18 @@ function AngryAssign:OnInitialize()
 				name = "Toggle Window",
 				desc = "Shows/hides the edit window (also available in game keybindings)",
 				func = function() AngryAssign_ToggleWindow() end
+			},
+			config = {
+				type = "execute",
+				order = 99,
+				hidden = true,
+				cmdHidden = false,
+				name = "Config",
+				desc = "Shows the addon configuration window",
+				func = function()
+					InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
+					InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
+				end
 			},
 			toggle = {
 				type = "execute",
@@ -1365,7 +1378,7 @@ function AngryAssign:OnInitialize()
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("AngryAssign", options, {"aa", "angryassign"})
 
-	local blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Assignments")
+	blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Assignments")
 	blizOptionsPanel.default = function() self:RestoreDefaults() end
 end
 

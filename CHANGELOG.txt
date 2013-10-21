@@ -1,6 +1,7 @@
 ## v0.3
 
 * "Defaults" button in addon configuration screen now works
+* Added '/aa config' to open addon configuration window
 * Added configuration option for normal font color
 
 ## v0.2
