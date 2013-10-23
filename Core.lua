@@ -1170,7 +1170,7 @@ function AngryAssign:OnInitialize()
 				desc = "Shows/hides the edit window (also available in game keybindings)",
 				func = function() AngryAssign_ToggleWindow() end
 			},
-			config = {
+			configs = {
 				type = "execute",
 				order = 99,
 				hidden = true,
