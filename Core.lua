@@ -1051,7 +1051,7 @@ function AngryAssign:UpdateDisplayed()
 		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "%w+") do
 			token = token:lower()
 			if token == 'group'then
-				token = 'G'..(currentGroup or 0)
+				token = 'g'..(currentGroup or 0)
 			end
 			text = text:gsub("(%w+)", function(word)
 				if token == word:lower() then
