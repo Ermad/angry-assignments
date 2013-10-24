@@ -1383,7 +1383,6 @@ function AngryAssign:OnInitialize()
 end
 
 function AngryAssign:OnEnable()
-	currentGroup = self:GetCurrentGroup()
 	self:CreateDisplay()
 
 	self:RegisterComm(comPrefix, "ReceiveMessage")
@@ -1397,10 +1396,6 @@ function AngryAssign:OnEnable()
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
-
-	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		self:ClearDisplayed()
-	end
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
@@ -1430,6 +1425,10 @@ function AngryAssign:GROUP_ROSTER_UPDATE()
 end
 
 function AngryAssign:AfterEnable()
+	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		self:ClearDisplayed()
+	end
+	
 	self:SendMessage({ "VER_QUERY" })
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()
