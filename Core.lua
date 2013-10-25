@@ -1170,16 +1170,13 @@ function AngryAssign:OnInitialize()
 				desc = "Shows/hides the edit window (also available in game keybindings)",
 				func = function() AngryAssign_ToggleWindow() end
 			},
-			configs = {
+			help = {
 				type = "execute",
 				order = 99,
+				name = "Help",
 				hidden = true,
-				cmdHidden = false,
-				name = "Config",
-				desc = "Shows the addon configuration window",
 				func = function()
-					InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
-					InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
+					LibStub("AceConfigCmd-3.0").HandleCommand(self, "aa", "AngryAssign", "")
 				end
 			},
 			toggle = {
@@ -1376,10 +1373,20 @@ function AngryAssign:OnInitialize()
 		}
 	}
 
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("AngryAssign", options, {"aa", "angryassign"})
+	self:RegisterChatCommand("aa", "ChatCommand")
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("AngryAssign", options)
 
 	blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Assignments")
 	blizOptionsPanel.default = function() self:RestoreDefaults() end
+end
+
+function AngryAssign:ChatCommand(input)
+  if not input or input:trim() == "" then
+	InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
+	InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
+  else
+    LibStub("AceConfigCmd-3.0").HandleCommand(self, "aa", "AngryAssign", input)
+  end
 end
 
 function AngryAssign:OnEnable()
