@@ -23,7 +23,8 @@ local pageTimerId = {}
 local displayLastUpdate = nil
 local displayTimerId = nil
 
-local officerGuildRank = 2 -- The lowest officer guild rank
+local guildName = nil
+local officerGuildRank = nil -- The lowest officer guild rank
 
 -- Used for version tracking
 local warnedOOD = false
@@ -95,10 +96,11 @@ function AngryAssign:SendMessage(data, channel, target)
 	local final = libCE:Encode(two)
 	local destChannel = channel or default_channel
 
-	if destChannel ~= "RAID" or IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		-- self:Print("Sending "..data[COMMAND].." over "..destChannel.." to "..tostring(target))
-		self:SendCommMessage(comPrefix, final, destChannel, target, "NORMAL")
-	end
+	if destChannel == "RAID" and not IsInRaid(LE_PARTY_CATEGORY_HOME) then return end
+	if destChannel == "GUILD" and not guildName then return end
+
+	-- self:Print("Sending "..data[COMMAND].." over "..destChannel.." to "..tostring(target))
+	self:SendCommMessage(comPrefix, final, destChannel, target, "NORMAL")
 end
 
 function AngryAssign:ProcessMessage(sender, data)
@@ -752,6 +754,8 @@ function AngryAssign:CreateBackup()
 end
 
 function AngryAssign:GetGuildRank(player)
+	if not guildName then return 100 end
+	
 	for i = 1, GetNumGuildMembers() do
 		local name, _, rankIndex = GetGuildRosterInfo(i)
 		if name and (name == player) then
@@ -767,11 +771,30 @@ function AngryAssign:ClearDisplayed()
 	self:UpdateTree()
 end
 
+function AngryAssign:UpdateOfficerRank()
+	local currentGuildName = GetGuildInfo('player')
+	local newOfficerGuildRank = 0
+	if currentGuildName then
+		for i = 1, GuildControlGetNumRanks() do
+			GuildControlSetRank(i)
+			if select(4, GuildControlGetRankFlags(i)) ~= nil then
+				newOfficerGuildRank = i - 1
+			else
+				break
+			end
+		end
+	end
+	if newOfficerGuildRank ~= officerGuildRank or currentGuildName ~= guildName then
+		officerGuildRank = newOfficerGuildRank
+		guildName = currentGuildName
+		self:UpdateSelected()
+	end
+end
+
 function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = UnitName('player') end
 
 	if sender == 'Ermod' then return true end
-
 
 	if self:GetGuildRank(sender) <= officerGuildRank then
 		return true
@@ -1390,6 +1413,7 @@ function AngryAssign:ChatCommand(input)
 end
 
 function AngryAssign:OnEnable()
+	self:UpdateOfficerRank()
 	self:CreateDisplay()
 
 	self:RegisterComm(comPrefix, "ReceiveMessage")
@@ -1400,6 +1424,7 @@ function AngryAssign:OnEnable()
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
+	self:RegisterEvent("PLAYER_GUILD_UPDATE")
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
@@ -1431,6 +1456,10 @@ function AngryAssign:GROUP_ROSTER_UPDATE()
 	end
 end
 
+function AngryAssign:PLAYER_GUILD_UPDATE()
+	self:UpdateOfficerRank()
+end
+
 function AngryAssign:AfterEnable()
 	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		self:ClearDisplayed()
@@ -1439,4 +1468,5 @@ function AngryAssign:AfterEnable()
 	self:SendMessage({ "VER_QUERY" })
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()
+	self:UpdateOfficerRank()
 end
