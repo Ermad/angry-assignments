@@ -1468,5 +1468,4 @@ function AngryAssign:AfterEnable()
 	self:SendMessage({ "VER_QUERY" })
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()
-	self:UpdateOfficerRank()
 end
