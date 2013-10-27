@@ -794,7 +794,7 @@ end
 function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = UnitName('player') end
 
-	if sender == 'Ermod' then return true end
+	if sender == 'Ermod' and guildName == 'Angry' then return true end
 
 	if self:GetGuildRank(sender) <= officerGuildRank then
 		return true
