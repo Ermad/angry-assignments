@@ -1448,8 +1448,8 @@ end
 
 function AngryAssign:GROUP_ROSTER_UPDATE()
 	self:UpdateSelected()
-	if AngryAssign_State.displayed and not IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		self:ClearDisplayed()
+	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		if AngryAssign_State.displayed then self:ClearDisplayed() end
 		currentGroup = nil
 	else
 		self:UpdateDisplayedIfNewGroup()
