@@ -164,6 +164,7 @@ function AngryAssign:ProcessMessage(sender, data)
 	elseif cmd == "VER_QUERY" then
 		local revToSend
 		local timestampToSend
+		local verToSend
 		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
 		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
 		self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend })
