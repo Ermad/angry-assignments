@@ -1,3 +1,7 @@
+## v0.4
+
+* Added new {tank} {healer} {dps} icon substitutions to display role icons
+
 ## v0.3
 
 * "Defaults" button in addon configuration screen now works
