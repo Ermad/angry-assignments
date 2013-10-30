@@ -666,7 +666,7 @@ function AngryAssign:UpdateSelected(destructive)
 		self.window.button_clear:SetDisabled(false)
 	else
 		self.window.button_add:SetDisabled(true)
-		self.window.button_clear:SetDisabled(false)
+		self.window.button_clear:SetDisabled(true)
 	end
 end
 
