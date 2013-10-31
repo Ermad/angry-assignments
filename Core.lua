@@ -1191,23 +1191,28 @@ function AngryAssign:UpdateDisplayed()
 	if page then
 		local text = page.Contents
 
-		local highlightHex = self:GetConfig('highlightColor')
-		text = text:gsub("||", "|")
+		local highlights = { }
 		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "%w+") do
 			token = token:lower()
 			if token == 'group'then
-				token = 'g'..(currentGroup or 0)
+				tinsert(highlights, 'g'..(currentGroup or 0))
+			else
+				tinsert(highlights, token)
 			end
-			text = text:gsub("(%w+)", function(word)
-				if token == word:lower() then
-					return string.format("|cff%s%s|r", highlightHex, word)
-				else
-					return word
-				end
-			end)
 		end
-
-		text = text:gsub(ci_pattern('{star}'), "{rt1}")
+		local highlightHex = self:GetConfig('highlightColor')
+		
+		text = text:gsub("||", "|")
+			:gsub("(%w+)", function(word)
+				local word_lower = word:lower()
+				for _, token in ipairs(highlights) do
+					if token == word_lower then
+						return string.format("|cff%s%s|r", highlightHex, word)
+					end
+				end
+				return word
+			end)
+			:gsub(ci_pattern('{star}'), "{rt1}")
 			:gsub(ci_pattern('{circle}'), "{rt2}")
 			:gsub(ci_pattern('{diamond}'), "{rt3}")
 			:gsub(ci_pattern('{triangle}'), "{rt4}")
@@ -1227,7 +1232,7 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{healer}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:1:20|t")
 			:gsub(ci_pattern('{dps}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:22:41|t")
 			:gsub(ci_pattern('{hero}'), "{heroism}")
-			:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\Ability_Shaman_Heroism:0|t")
+			:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
