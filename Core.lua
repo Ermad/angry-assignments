@@ -580,20 +580,28 @@ function AngryAssign:CreateWindow()
 
 	self:UpdateSelected(true)
 	
-	self:CreateIconPicker()
+	--self:CreateIconPicker()
 end
 
 local function AngryAssign_IconPicker_Clicked(widget, event)
 	local texture
 	if widget:GetUserData('name') then
-		text = widget:GetUserData('name')
+		icon = widget:GetUserData('name')
 	else
-		text = '{icon '..strmatch(widget.image:GetTexture():lower(), "^interface\\icons\\([-_%w]+)$")..'}'
-	end 
+		icon = '{icon '..strmatch(widget.image:GetTexture():lower(), "^interface\\icons\\([-_%w]+)$")..'}'
+	end
 
-	AngryAssign.window.text:SetText( AngryAssign.window.text:GetText()..text)
+	local position = AngryAssign.window.text.editBox:GetCursorPosition()
+	if position > 0 then
+		local text = AngryAssign.window.text:GetText()
+		AngryAssign.window.text:SetText( strsub(text, 1, position)..icon..strsub(text, position+1, AngryAssign.window.text.editBox:GetNumLetters()) )
+		AngryAssign.window.text.editBox:SetCursorPosition( position, string.len(text) )
+	else
+		AngryAssign.window.text:SetText( AngryAssign.window.text:GetText()..icon)
+	end
+
 	AngryAssign.window.text.button:Enable()
-	AngryAssign_TextChanged(widget, event, value)
+	AngryAssign_TextChanged()
 end
 
 local iconCache = nil
@@ -1218,6 +1226,8 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{tank}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:0:19:22:41|t")
 			:gsub(ci_pattern('{healer}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:1:20|t")
 			:gsub(ci_pattern('{dps}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:22:41|t")
+			:gsub(ci_pattern('{hero}'), "{heroism}")
+			:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\Ability_Shaman_Heroism:0|t")
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }

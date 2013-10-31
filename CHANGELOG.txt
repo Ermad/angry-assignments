@@ -1,7 +1,7 @@
 ## v0.4
 
-* Added new icon picker window, to easily add icons to assignments
 * Added new {tank} {healer} {dps} icon substitutions to display role icons
+* Added {hero}/{heroism} icons
 
 ## v0.3
 
