@@ -1,3 +1,7 @@
+## v0.4.1
+
+* Added shortcuts for color escape sequences, ex: |cgreen which will become |cff46a546. Supports green, blue, red, yellow, orange, pink, and purple.
+
 ## v0.4
 
 * Added new {tank} {healer} {dps} icon substitutions to display role icons
