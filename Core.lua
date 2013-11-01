@@ -1203,6 +1203,13 @@ function AngryAssign:UpdateDisplayed()
 		local highlightHex = self:GetConfig('highlightColor')
 		
 		text = text:gsub("||", "|")
+			:gsub(ci_pattern('|cblue'), "|cff049cdb")
+			:gsub(ci_pattern('|cgreen'), "|cff46a546")
+			:gsub(ci_pattern('|cred'), "|cff9d261d")
+			:gsub(ci_pattern('|cyellow'), "|cffffc40d")
+			:gsub(ci_pattern('|corange'), "|cfff89406")
+			:gsub(ci_pattern('|cpink'), "|cffc3325f")
+			:gsub(ci_pattern('|cpurple'), "|cff7a43b6")
 			:gsub("(%w+)", function(word)
 				local word_lower = word:lower()
 				for _, token in ipairs(highlights) do
