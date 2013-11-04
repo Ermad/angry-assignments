@@ -1,3 +1,8 @@
+## v0.4.2
+
+* Updated colors used for color sequences (ex: |cgreen)
+* Some internal changes
+
 ## v0.4.1
 
 * Added shortcuts for color escape sequences, ex: |cgreen which will become |cff46a546. Supports green, blue, red, yellow, orange, pink, and purple.
