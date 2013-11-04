@@ -476,6 +476,7 @@ function AngryAssign:CreateWindow()
 	AngryAssign.window = window
 
 	AngryAssign_Window = window.frame
+	window.frame:SetMinResize(600, 300)
 	window.frame:SetFrameStrata("HIGH")
 	window.frame:SetFrameLevel(1)
 	tinsert(UISpecialFrames, "AngryAssign_Window")
