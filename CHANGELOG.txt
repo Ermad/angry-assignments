@@ -1,3 +1,7 @@
+## v0.4.3
+
+* Fix for 5.4.2 Guild API changes
+
 ## v0.4.2
 
 * Updated colors used for color sequences (ex: |cgreen)
