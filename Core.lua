@@ -880,7 +880,8 @@ function AngryAssign:GetGuildRank(player)
 	if not guildName then return 100 end
 	
 	for i = 1, GetNumGuildMembers() do
-		local name, _, rankIndex = GetGuildRosterInfo(i)
+		local fullname, _, rankIndex = GetGuildRosterInfo(i)
+		local name, _ = strsplit("-", fullname)
 		if name and (name == player) then
 			return rankIndex 
 		end
