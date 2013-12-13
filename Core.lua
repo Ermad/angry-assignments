@@ -71,6 +71,13 @@ local DISPLAY_Updated = 3
 local VERSION_Version = 2
 local VERSION_Timestamp = 3
 
+local function EnsureUnitFullName(unit)
+   if not unit:find('-') then
+      unit = unit..'-'..select(2, UnitFullName('player'))
+   end
+   return unit
+end
+
 -------------------------
 -- Addon Communication --
 -------------------------
@@ -878,11 +885,11 @@ end
 
 function AngryAssign:GetGuildRank(player)
 	if not guildName then return 100 end
-	
+	local fullplayer = EnsureUnitFullName(player)
+
 	for i = 1, GetNumGuildMembers() do
 		local fullname, _, rankIndex = GetGuildRosterInfo(i)
-		local name, _ = strsplit("-", fullname)
-		if name and (name == player) then
+		if fullname and (fullname == fullplayer) then
 			return rankIndex 
 		end
 	end

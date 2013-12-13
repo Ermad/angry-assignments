@@ -1,3 +1,8 @@
+## v0.4.4
+
+* Better fix for 5.4.2 Guild API changes
+* Added OptionalDeps for when addon is being run without embedded libraries
+
 ## v0.4.3
 
 * Fix for 5.4.2 Guild API changes
