@@ -309,7 +309,7 @@ function AngryAssign:VersionCheckOutput()
 	versionliststr = ""
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
-			local name, _, _, _, _, _, _, _, online = GetRaidRosterInfo(i)	
+			local name, _, _, _, _, _, _, online = GetRaidRosterInfo(i)
 			if online then
 				local found = false
 				for i,v in pairs(versionList) do

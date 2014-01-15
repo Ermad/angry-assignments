@@ -1,3 +1,7 @@
+## v0.4.5
+
+* Fixed version check not working for dead players
+
 ## v0.4.4
 
 * Better fix for 5.4.2 Guild API changes
