@@ -14,7 +14,7 @@ BINDING_NAME_AngryAssign_DISPLAY = "Toggle Display"
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
 
-local default_channel = "GUILD"
+local default_channel = "RAID"
 local protocolVersion = 1
 local comPrefix = "AnAss"..protocolVersion
 local updateFrequency = 2
@@ -53,7 +53,7 @@ local currentGroup = nil
 -- Asks to be sent DISPLAY. Response is a throttled DISPLAY. Uses WHISPER to raid leader.
 --
 -- { "VER_QUERY" }
--- { "VERSION", [Version], [Project Timestamp] }
+-- { "VERSION", [Version], [Project Timestamp], [Valid Raid] }
 
 -- Constants for dealing with our addon communication
 local COMMAND = 1
@@ -70,6 +70,7 @@ local DISPLAY_Updated = 3
 
 local VERSION_Version = 2
 local VERSION_Timestamp = 3
+local VERSION_ValidRaid = 4
 
 local function EnsureUnitFullName(unit)
    if not unit:find('-') then
@@ -174,7 +175,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		local verToSend
 		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
 		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
-		self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend })
+		self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend, [VERSION_ValidRaid] = self:IsValidRaid() })
 
 	elseif cmd == "VERSION" then
 		local localTimestamp, ver, timestamp
@@ -922,17 +923,35 @@ function AngryAssign:UpdateOfficerRank()
 	end
 end
 
+function AngryAssign:IsValidRaid()
+	if self:GetConfig('allowall') then -- If non guild mode, then accept all guilds
+		return true
+	end
+	
+	local leader = self:GetRaidLeader()
+	
+	if self:GetGuildRank(leader) <= officerGuildRank then -- If leader is in current guild and an officer rank
+		return true
+	end
+	
+	for token in string.gmatch( AngryAssign:GetConfig('allowplayers') , "%w+") do
+		if leader and EnsureUnitFullName(token) == EnsureUnitFullName(leader) then
+			return true
+		end
+	end
+	
+	return false
+end
+
 function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = UnitName('player') end
 
 	if sender == 'Ermod' and guildName == 'Angry' then return true end
 
-	if self:GetGuildRank(sender) <= officerGuildRank then
-		return true
-	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) and (UnitIsGroupLeader(sender) or UnitIsGroupAssistant(sender)) and self:GetGuildRank(self:GetRaidLeader()) <= officerGuildRank then
-		return true
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		return (UnitIsGroupLeader(sender) or UnitIsGroupAssistant(sender)) and self:IsValidRaid()
 	else
-		return false
+		return sender == UnitName('player')
 	end
 end
 
@@ -952,6 +971,21 @@ local function Mover_MouseUp(frame)
 	local display = frame:GetParent()
 	display:StopMovingOrSizing()
 	lwin.SavePosition(display)
+end
+
+function AngryAssign:ResetPosition()
+	AngryAssign_State.display = {}
+	AngryAssign_State.directionUp = false
+	AngryAssign_State.locked = false
+	
+	self.display_text:Show()
+	self.mover:Show()
+	self.frame:SetWidth(300)
+	
+	lwin.RegisterConfig(self.frame, AngryAssign_State.display)
+	lwin.RestorePosition(self.frame)
+	
+	self:UpdateDirection()
 end
 
 function AngryAssign_ToggleDisplay()
@@ -987,6 +1021,7 @@ function AngryAssign:CreateDisplay()
 	frame:SetMinResize(180,1)
 	frame:SetMaxResize(830,1)
 	frame:SetFrameStrata("MEDIUM")	
+	self.frame = frame
 
 	lwin.RegisterConfig(frame, AngryAssign_State.display)
 	lwin.RestorePosition(frame)
@@ -1288,8 +1323,11 @@ local configDefaults = {
 	fontFlags = "NONE",
 	highlight = "",
 	highlightColor = "ffd200",
-	color = "ffffff"
+	color = "ffffff",
+	allowall = false,
+	allowplayers = ""
 }
+
 function AngryAssign:GetConfig(key)
 	if AngryAssign_Config[key] == nil then
 		return configDefaults[key]
@@ -1380,7 +1418,7 @@ function AngryAssign:OnInitialize()
 				type = "execute",
 				name = "Restore Defaults",
 				desc = "Restore configuration values to their default settings",
-				order = 9,
+				order = 10,
 				hidden = true,
 				cmdHidden = false,
 				confirm = true,
@@ -1396,6 +1434,15 @@ function AngryAssign:OnInitialize()
 				func = function() 
 					self:CreateBackup()
 					self:Print("Created a backup of all pages.")
+				end
+			},
+			resetposition = {
+				type = "execute",
+				order = 9,
+				name = "Reset Position",
+				desc = "Resets position for the assignment display",
+				func = function()
+					self:ResetPosition()
 				end
 			},
 			version = {
@@ -1540,6 +1587,34 @@ function AngryAssign:OnInitialize()
 							self:UpdateDisplayed()
 						end
 					}
+				}
+			},
+			permissions = { 
+				type = "group",
+				order = 7,
+				name = "Permissions",
+				inline = true,
+				args = {
+					allowall = {
+						type = "toggle",
+						order = 1,
+						name = "Allow All",
+						desc = "Enable to allow changes from any raid assistant, even if you aren't in a guild raid",
+						get = function(info) return self:GetConfig('allowall') end,
+						set = function(info, val)
+							self:SetConfig('allowall', val)
+						end
+					},
+					allowplayers = {
+						type = "input",
+						order = 2,
+						name = "Allow Players",
+						desc = "A list of players that when they are the raid leader to allow changes from all raid assistants",
+						get = function(info) return self:GetConfig('allowplayers') end,
+						set = function(info, val)
+							self:SetConfig('allowplayers', val)
+						end
+					},
 				}
 			}
 		}
