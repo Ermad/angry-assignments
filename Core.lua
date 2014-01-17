@@ -22,6 +22,8 @@ local pageLastUpdate = {}
 local pageTimerId = {}
 local displayLastUpdate = nil
 local displayTimerId = nil
+local versionLastUpdate = nil
+local versionTimerId = nil
 
 local guildName = nil
 local officerGuildRank = nil -- The lowest officer guild rank
@@ -29,6 +31,8 @@ local officerGuildRank = nil -- The lowest officer guild rank
 -- Used for version tracking
 local warnedOOD = false
 local versionList = {}
+
+local warnedPermission = false
 
 local currentGroup = nil
 
@@ -115,7 +119,11 @@ function AngryAssign:ProcessMessage(sender, data)
 	local cmd = data[COMMAND]
 	-- self:Print("Received "..data[COMMAND].." from "..sender)
 	if cmd == "PAGE" then
-		if not self:PermissionCheck(sender) or sender == UnitName('player') then return end
+		if sender == UnitName('player') then return end
+		if not self:PermissionCheck(sender) then
+			self:PermissionCheckFailError(sender)
+			return
+		end
 
 		local contents_updated = true
 		local id = data[PAGE_Id]
@@ -143,7 +151,10 @@ function AngryAssign:ProcessMessage(sender, data)
 		self:UpdateTree()
 
 	elseif cmd == "DISPLAY" then
-		if not self:PermissionCheck(sender) then return end
+		if not self:PermissionCheck(sender) then
+			self:PermissionCheckFailError(sender)
+			return
+		end
 
 		local id = data[DISPLAY_Id]
 		local updated = data[DISPLAY_Updated]
@@ -170,13 +181,10 @@ function AngryAssign:ProcessMessage(sender, data)
 
 
 	elseif cmd == "VER_QUERY" then
-		local revToSend
-		local timestampToSend
-		local verToSend
-		if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
-		if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
-		self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend, [VERSION_ValidRaid] = self:IsValidRaid() })
-
+		
+		self:SendVersion()
+		
+		
 	elseif cmd == "VERSION" then
 		local localTimestamp, ver, timestamp
 		
@@ -185,19 +193,18 @@ function AngryAssign:ProcessMessage(sender, data)
 		timestamp = data[VERSION_Timestamp]
 			
 		if localTimestamp ~= nil and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then 
-			self:Print("Your version of Angry Assignments is out of date! Download the latest version from www.wowace.com.")
+			self:Print("Your version of Angry Assignments is out of date! Download the latest version from curse.com")
 			warnedOOD = true
 		end
+		
+		versionList[ sender ] = { valid = data[VERSION_ValidRaid], version = ver }
+	end
+end
 
-		local found = false
-		for i,v in pairs(versionList) do
-			if (v["name"] == sender) then
-				v["version"] = ver
-				found = true
-			end
-		end
-		if not found then tinsert(versionList, {name = sender, version = ver}) end
-
+function AngryAssign:PermissionCheckFailError(sender)
+	if not warnedPermission then
+		self:Print( RED_FONT_COLOR_CODE .. "You have received a page update from "..sender.." that was rejected due to insufficient permissions. If you wish to see this page, please adjust your permission settings.|r" )
+		warnedPermission = true
 	end
 end
 
@@ -269,6 +276,42 @@ function AngryAssign:SendRequestDisplay()
 	end
 end
 
+function AngryAssign:SendVersion(force)
+	local curTime = time()
+
+	if versionLastUpdate and (curTime - versionLastUpdate <= updateFrequency) then
+		if not versionTimerId then
+			if force then
+				self:SendVersionMessage(id)
+			else
+				versionTimerId = self:ScheduleTimer("SendVersionMessage", updateFrequency - (curTime - versionLastUpdate), id)
+			end
+		elseif force then
+			self:CancelTimer( versionTimerId )
+			self:SendVersionMessage()
+		end
+	else
+		self:SendVersionMessage()
+	end
+end
+
+function AngryAssign:SendVersionMessage()
+	versionLastUpdate = time()
+	versionTimerId = nil
+
+	local revToSend
+	local timestampToSend
+	local verToSend
+	if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
+	if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
+	self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend, [VERSION_ValidRaid] = self:IsValidRaid() })
+end
+
+
+function AngryAssign:SendVerQuery()
+	self:SendMessage({ "VER_QUERY" })
+end
+
 function AngryAssign:SendRequestPage(id, to)
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) or to then
 		if not to then to = self:GetRaidLeader() end
@@ -302,28 +345,43 @@ function AngryAssign:GetCurrentGroup()
 end
 
 function AngryAssign:VersionCheckOutput()
-	local versionliststr = ""
-	for i,v in pairs(versionList) do
-		versionliststr = versionliststr..v["name"].."-|cFFFF0000"..v["version"].."|r "
-	end
-	self:Print(versionliststr)
-	versionliststr = ""
+	local missing_addon = {}
+	local invalid_raid = {}
+	local different_version = {}
+	local up_to_date = {}
+	
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, _, _, _, _, _, online = GetRaidRosterInfo(i)
 			if online then
-				local found = false
-				for i,v in pairs(versionList) do
-					if v["name"] == name then
-						found = true
-						break
-					end
+				if not versionList[ name ] then
+					tinsert(missing_addon, name)
+				elseif versionList[ name ].valid == false then
+					tinsert(invalid_raid, name)
+				elseif AngryAssign_Version ~= versionList[ name ].version then
+					tinsert(different_version, string.format("%s - %s", name, versionList[ name ].version)  )
+				else
+					tinsert(up_to_date, name)
 				end
-				if not found then versionliststr = versionliststr .. " " .. name end
 			end
 		end
 	end
-	if versionliststr ~= "" then self:Print("Not running:"..versionliststr) end
+	
+	if #up_to_date > 0 then
+		self:Print("Up to date: "..table.concat(up_to_date, ", "))
+	end
+	
+	if #missing_addon > 0 then
+		self:Print("Missing Addon: "..table.concat(missing_addon, ", "))
+	end
+	
+	if #invalid_raid > 0 then
+		self:Print("Invalid Raid: "..table.concat(invalid_raid, ", "))
+	end
+	
+	if #different_version > 0 then
+		self:Print("Different Version: "..table.concat(different_version, ", "))
+	end
 end
 
 --------------------------
@@ -909,7 +967,7 @@ function AngryAssign:UpdateOfficerRank()
 	if currentGuildName then
 		for i = 1, GuildControlGetNumRanks() do
 			GuildControlSetRank(i)
-			if select(4, GuildControlGetRankFlags(i)) ~= nil then
+			if select(4, GuildControlGetRankFlags()) ~= nil then
 				newOfficerGuildRank = i - 1
 			else
 				break
@@ -924,7 +982,7 @@ function AngryAssign:UpdateOfficerRank()
 end
 
 function AngryAssign:IsValidRaid()
-	if self:GetConfig('allowall') then -- If non guild mode, then accept all guilds
+	if self:GetConfig('allowall') then
 		return true
 	end
 	
@@ -934,7 +992,7 @@ function AngryAssign:IsValidRaid()
 		return true
 	end
 	
-	for token in string.gmatch( AngryAssign:GetConfig('allowplayers') , "%w+") do
+	for token in string.gmatch( AngryAssign:GetConfig('allowplayers') , "[-%w]+") do
 		if leader and EnsureUnitFullName(token) == EnsureUnitFullName(leader) then
 			return true
 		end
@@ -1603,6 +1661,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return self:GetConfig('allowall') end,
 						set = function(info, val)
 							self:SetConfig('allowall', val)
+							self:UpdateSelected()
 						end
 					},
 					allowplayers = {
@@ -1613,6 +1672,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return self:GetConfig('allowplayers') end,
 						set = function(info, val)
 							self:SetConfig('allowplayers', val)
+							self:UpdateSelected()
 						end
 					},
 				}
@@ -1656,11 +1716,13 @@ end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
 	self:SendRequestDisplay()
+	self:SendVerQuery()
 	self:UpdateDisplayedIfNewGroup()
 end
 
 function AngryAssign:GROUP_JOINED()
 	self:SendRequestDisplay()
+	self:SendVerQuery()
 	self:UpdateDisplayedIfNewGroup()
 end
 
@@ -1689,7 +1751,7 @@ function AngryAssign:AfterEnable()
 		self:ClearDisplayed()
 	end
 	
-	self:SendMessage({ "VER_QUERY" })
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()
+	self:SendVerQuery()
 end

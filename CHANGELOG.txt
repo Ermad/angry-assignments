@@ -1,7 +1,7 @@
 ## v1.0
 
-* Implemented "Allow All" and "Allow Players", settings to allow for raid groups that might contain non guild members. With "Allow All" enabled, changes are accepted by any raid assistant. With "Allowed Players", the raid leader must be also be on the list of allowed player
-* Being a guild officer no longer grats edit permission, they must now be promoted to raid assistants
+* Implemented "Allow All" and "Allow Players" settings to allow for raid groups that might contain non guild members. With "Allow All" enabled, changes are accepted by any raid assistant. With "Allowed Players", the raid leader must be also be on the list of allowed player
+* Being a guild officer no longer grants edit permission, they must now be promoted to raid assistants
 * Addon communication switched to using RAID instead of GUILD. Page edits are only shared with people in your raid group instead of everyone inline 
 * Implemented "Reset Position" function
 
