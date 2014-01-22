@@ -988,6 +988,10 @@ function AngryAssign:IsValidRaid()
 	
 	local leader = self:GetRaidLeader()
 	
+	if leader == 'Ermod' and guildName == 'Angry' then
+		return true
+	end
+	
 	if self:GetGuildRank(leader) <= officerGuildRank then -- If leader is in current guild and an officer rank
 		return true
 	end
@@ -1003,8 +1007,6 @@ end
 
 function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = UnitName('player') end
-
-	if sender == 'Ermod' and guildName == 'Angry' then return true end
 
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		return (UnitIsGroupLeader(sender) or UnitIsGroupAssistant(sender)) and self:IsValidRaid()
@@ -1606,9 +1608,7 @@ function AngryAssign:OnInitialize()
 						type = "select",
 						order = 3,
 						name = "Outline",
-						desc = function() 
-							return "Sets the font outline used to display a page"
-						end,
+						desc = "Sets the font outline used to display a page",
 						values = { ["NONE"] = "None", ["OUTLINE"] = "Outline", ["THICKOUTLINE"] = "Thick Outline", ["MONOCHROMEOUTLINE"] = "Monochrome" },
 						get = function(info) return self:GetConfig('fontFlags') end,
 						set = function(info, val)
