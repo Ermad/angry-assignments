@@ -943,7 +943,7 @@ function AngryAssign:CreateBackup()
 end
 
 function AngryAssign:GetGuildRank(player)
-	if not guildName then return 100 end
+	if not guildName or not player then return 100 end
 	local fullplayer = EnsureUnitFullName(player)
 
 	for i = 1, GetNumGuildMembers() do
