@@ -1,7 +1,10 @@
 ## v1.0
 
-* Implemented support for raids with non guild members. Pages will be accepted from any raid leader/assistant if "Allow All" setting is enabled, or the raid leader is an officer in your guild, or if the raid leader is in your "Allow Players" setting. By default guild officers are no longer automatically given editing permissions, now they must also be promoted to a raid assistant.
-* Implemented "Reset Position" function
+* Implemented support for raids with non guild members. Pages will be accepted from any raid leader/assistant, if "Allow All" setting is enabled, or the raid leader is an officer in your guild, or if the raid leader is in your "Allow Players" setting.
+* Updated version check output display.
+* By default guild officers are no longer automatically given editing permissions, now they must also be promoted to a raid assistant.
+* Implemented "Reset Position" function. Used to reset the assignment display position to the center of screen.
+* While not in a raid, any player can now edit pages. The changes are not sent out to anyone until you later join a raid and then send or save them.
 
 ## v0.4.5
 
