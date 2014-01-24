@@ -193,7 +193,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		timestamp = data[VERSION_Timestamp]
 			
 		if localTimestamp ~= nil and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then 
-			self:Print("Your version of Angry Assignments is out of date! Download the latest version from curse.com")
+			self:Print("Your version of Angry Assignments is out of date! Download the latest version from curse.com.")
 			warnedOOD = true
 		end
 		
@@ -350,15 +350,18 @@ function AngryAssign:VersionCheckOutput()
 	local different_version = {}
 	local up_to_date = {}
 	
+	local ver = AngryAssign_Version
+	if ver:sub(1,1) == "@" then ver = "dev" end
+	
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, _, _, _, _, _, online = GetRaidRosterInfo(i)
 			if online then
 				if not versionList[ name ] then
 					tinsert(missing_addon, name)
-				elseif versionList[ name ].valid == false then
+				elseif versionList[ name ].valid == false and (versionList[ name ].valid == nil and self:GetGuildRank(name) === 100) then
 					tinsert(invalid_raid, name)
-				elseif AngryAssign_Version ~= versionList[ name ].version then
+				elseif ver ~= versionList[ name ].version then
 					tinsert(different_version, string.format("%s - %s", name, versionList[ name ].version)  )
 				else
 					tinsert(up_to_date, name)
@@ -368,19 +371,19 @@ function AngryAssign:VersionCheckOutput()
 	end
 	
 	if #up_to_date > 0 then
-		self:Print("Up to date: "..table.concat(up_to_date, ", "))
-	end
-	
-	if #missing_addon > 0 then
-		self:Print("Missing Addon: "..table.concat(missing_addon, ", "))
-	end
-	
-	if #invalid_raid > 0 then
-		self:Print("Invalid Raid: "..table.concat(invalid_raid, ", "))
+		self:Print("Same version: "..table.concat(up_to_date, ", "))
 	end
 	
 	if #different_version > 0 then
-		self:Print("Different Version: "..table.concat(different_version, ", "))
+		self:Print("Different version: "..table.concat(different_version, ", "))
+	end
+	
+	if #invalid_raid > 0 then
+		self:Print("Not allowing changes: "..table.concat(invalid_raid, ", "))
+	end
+	
+	if #missing_addon > 0 then
+		self:Print("Missing addon: "..table.concat(missing_addon, ", "))
 	end
 end
 
@@ -1662,6 +1665,7 @@ function AngryAssign:OnInitialize()
 						set = function(info, val)
 							self:SetConfig('allowall', val)
 							self:UpdateSelected()
+							self:SendRequestDisplay()
 						end
 					},
 					allowplayers = {
@@ -1673,6 +1677,7 @@ function AngryAssign:OnInitialize()
 						set = function(info, val)
 							self:SetConfig('allowplayers', val)
 							self:UpdateSelected()
+							self:SendRequestDisplay()
 						end
 					},
 				}
