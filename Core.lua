@@ -151,6 +151,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		self:UpdateTree()
 
 	elseif cmd == "DISPLAY" then
+		if sender == UnitName('player') then return end
 		if not self:PermissionCheck(sender) then
 			self:PermissionCheckFailError(sender)
 			return
@@ -172,10 +173,12 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 
 	elseif cmd == "REQUEST_DISPLAY" then
+		if sender == UnitName('player') then return end
 
 		self:SendDisplay( AngryAssign_State.displayed )
 
 	elseif cmd == "REQUEST_PAGE" then
+		if sender == UnitName('player') then return end
 		
 		self:SendPage( data[REQUEST_PAGE_Id] )
 
