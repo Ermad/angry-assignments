@@ -1018,6 +1018,15 @@ function AngryAssign:PermissionCheck(sender)
 	end
 end
 
+
+function AngryAssign:PermissionsUpdated()
+	self:UpdateSelected()
+	self:SendRequestDisplay()
+	if IsInRaid(LE_PARTY_CATEGORY_HOME) and not self:IsValidRaid() then
+		self:ClearDisplayed()
+	end
+end
+
 ---------------------
 -- Displaying Page --
 ---------------------
@@ -1491,7 +1500,7 @@ function AngryAssign:OnInitialize()
 			},
 			backup = {
 				type = "execute",
-				order = 7,
+				order = 20,
 				name = "Backup Pages",
 				desc = "Creates a backup of all pages with their current contents",
 				func = function() 
@@ -1501,7 +1510,7 @@ function AngryAssign:OnInitialize()
 			},
 			resetposition = {
 				type = "execute",
-				order = 9,
+				order = 22,
 				name = "Reset Position",
 				desc = "Resets position for the assignment display",
 				func = function()
@@ -1510,14 +1519,18 @@ function AngryAssign:OnInitialize()
 			},
 			version = {
 				type = "execute",
-				order = 8,
+				order = 21,
 				name = "Version Check",
-				desc = "Displays a list of all users (in the guild) running the addon and the version they're running",
+				desc = "Displays a list of all users (in the raid) running the addon and the version they're running",
 				func = function()
-					versionList = {} -- start with a fresh version list, when displaying it
-					self:SendMessage({ "VER_QUERY" }) 
-					self:ScheduleTimer("VersionCheckOutput", 2)
-					self:Print("Version check running...")
+					if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+						versionList = {} -- start with a fresh version list, when displaying it
+						self:SendMessage({ "VER_QUERY" }) 
+						self:ScheduleTimer("VersionCheckOutput", 2)
+						self:Print("Version check running...")
+					else
+						self:Print("You must be in a raid group to run the version check")
+					end
 				end
 			},
 			lock = {
@@ -1664,8 +1677,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return self:GetConfig('allowall') end,
 						set = function(info, val)
 							self:SetConfig('allowall', val)
-							self:UpdateSelected()
-							self:SendRequestDisplay()
+							self:PermissionsUpdated()
 						end
 					},
 					allowplayers = {
@@ -1676,8 +1688,7 @@ function AngryAssign:OnInitialize()
 						get = function(info) return self:GetConfig('allowplayers') end,
 						set = function(info, val)
 							self:SetConfig('allowplayers', val)
-							self:UpdateSelected()
-							self:SendRequestDisplay()
+							self:PermissionsUpdated()
 						end
 					},
 				}
@@ -1710,6 +1721,7 @@ function AngryAssign:OnEnable()
 	self:ScheduleTimer("AfterEnable", 4)
 
 	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
+	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -1717,6 +1729,11 @@ function AngryAssign:OnEnable()
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
+end
+
+
+function AngryAssign:PARTY_LEADER_CHANGED()
+	self:PermissionsUpdated()
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
