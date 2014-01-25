@@ -359,7 +359,7 @@ function AngryAssign:VersionCheckOutput()
 			if online then
 				if not versionList[ name ] then
 					tinsert(missing_addon, name)
-				elseif versionList[ name ].valid == false and (versionList[ name ].valid == nil and self:GetGuildRank(name) === 100) then
+				elseif versionList[ name ].valid == false and (versionList[ name ].valid == nil and self:GetGuildRank(name) == 100) then
 					tinsert(invalid_raid, name)
 				elseif ver ~= versionList[ name ].version then
 					tinsert(different_version, string.format("%s - %s", name, versionList[ name ].version)  )
