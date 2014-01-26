@@ -45,13 +45,13 @@ local currentGroup = nil
 -- Format for our addon communication
 --
 -- { "PAGE", [Id], [Last Update Timestamp], [Name], [Contents] }
--- Sent when a page is updated. Id is a random unique value. Checks that sender is Officer or Promoted. Uses GUILD.
+-- Sent when a page is updated. Id is a random unique value. Uses RAID.
 --
 -- { "REQUEST_PAGE", [Id] }
 -- Asks to be sent PAGE with given Id. Response is a throttled PAGE. Uses WHISPER to raid leader.
 --
 -- { "DISPLAY", [Id], [Last Update Timestamp] }
--- Raid leader / promoted sends out when new page is to be displayed. Checks that sender is Officer or Promoted. Uses RAID.
+-- Raid leader / promoted sends out when new page is to be displayed. Uses RAID.
 --
 -- { "REQUEST_DISPLAY" }
 -- Asks to be sent DISPLAY. Response is a throttled DISPLAY. Uses WHISPER to raid leader.
@@ -362,7 +362,7 @@ function AngryAssign:VersionCheckOutput()
 			if online then
 				if not versionList[ name ] then
 					tinsert(missing_addon, name)
-				elseif versionList[ name ].valid == false and (versionList[ name ].valid == nil and self:GetGuildRank(name) == 100) then
+				elseif versionList[ name ].valid == false or (versionList[ name ].valid == nil and self:GetGuildRank(name) == 100) then
 					tinsert(invalid_raid, name)
 				elseif ver ~= versionList[ name ].version then
 					tinsert(different_version, string.format("%s - %s", name, versionList[ name ].version)  )
@@ -1007,6 +1007,10 @@ function AngryAssign:IsValidRaid()
 			return true
 		end
 	end
+
+	if EnsureUnitFullName(UnitName('player')) == EnsureUnitFullName(leader) then
+		return true
+	end
 	
 	return false
 end
@@ -1532,7 +1536,7 @@ function AngryAssign:OnInitialize()
 						self:ScheduleTimer("VersionCheckOutput", 2)
 						self:Print("Version check running...")
 					else
-						self:Print("You must be in a raid group to run the version check")
+						self:Print("You must be in a raid group to run the version check.")
 					end
 				end
 			},
