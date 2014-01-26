@@ -1008,7 +1008,7 @@ function AngryAssign:IsValidRaid()
 		end
 	end
 
-	if EnsureUnitFullName(UnitName('player')) == EnsureUnitFullName(leader) then
+	if leader and EnsureUnitFullName(UnitName('player')) == EnsureUnitFullName(leader) then
 		return true
 	end
 	
@@ -1097,6 +1097,7 @@ function AngryAssign:CreateDisplay()
 	frame:SetHeight(1)
 	frame:SetMovable(true)
 	frame:SetResizable(true)
+	frame:SetClampedToScreen(true)
 	frame:SetMinResize(180,1)
 	frame:SetMaxResize(830,1)
 	frame:SetFrameStrata("MEDIUM")	
