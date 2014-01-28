@@ -153,7 +153,7 @@ function AngryAssign:ProcessMessage(sender, data)
 	elseif cmd == "DISPLAY" then
 		if sender == UnitName('player') then return end
 		if not self:PermissionCheck(sender) then
-			self:PermissionCheckFailError(sender)
+			if data[DISPLAY_Id] then self:PermissionCheckFailError(sender) end
 			return
 		end
 

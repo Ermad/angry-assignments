@@ -1,3 +1,7 @@
+## v1.0.1
+
+* Small change to rejected due to permissions error message.
+
 ## v1.0
 
 * Implemented support for raids with non guild members. Pages will be accepted from any raid leader/assistant, if "Allow All" setting is enabled, or the raid leader is an officer in your guild, or if the raid leader is in your "Allow Players" setting.
