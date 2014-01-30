@@ -1,6 +1,7 @@
 ## v1.0.1
 
-* Small change to rejected due to permissions error message.
+* Currently displayed page is now cleared when the raid leader is changed
+* Small change to rejected permissions error message.
 
 ## v1.0
 

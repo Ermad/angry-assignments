@@ -1742,6 +1742,7 @@ end
 
 function AngryAssign:PARTY_LEADER_CHANGED()
 	self:PermissionsUpdated()
+	if AngryAssign_State.displayed then self:ClearDisplayed() end
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
@@ -1767,6 +1768,7 @@ function AngryAssign:GROUP_ROSTER_UPDATE()
 	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		if AngryAssign_State.displayed then self:ClearDisplayed() end
 		currentGroup = nil
+		warnedPermission = false
 	else
 		self:UpdateDisplayedIfNewGroup()
 	end
