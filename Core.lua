@@ -374,20 +374,21 @@ function AngryAssign:VersionCheckOutput()
 		end
 	end
 	
+	self:Print("Version check results:")
 	if #up_to_date > 0 then
-		self:Print("Same version: "..table.concat(up_to_date, ", "))
+		print(LIGHTYELLOW_FONT_COLOR_CODE.."Same version:|r "..table.concat(up_to_date, ", "))
 	end
 	
 	if #different_version > 0 then
-		self:Print("Different version: "..table.concat(different_version, ", "))
+		print(LIGHTYELLOW_FONT_COLOR_CODE.."Different version:|r "..table.concat(different_version, ", "))
 	end
 	
 	if #invalid_raid > 0 then
-		self:Print("Not allowing changes: "..table.concat(invalid_raid, ", "))
+		print(LIGHTYELLOW_FONT_COLOR_CODE.."Not allowing changes:|r "..table.concat(invalid_raid, ", "))
 	end
 	
 	if #missing_addon > 0 then
-		self:Print("Missing addon: "..table.concat(missing_addon, ", "))
+		print(LIGHTYELLOW_FONT_COLOR_CODE.."Missing addon:|r "..table.concat(missing_addon, ", "))
 	end
 end
 
