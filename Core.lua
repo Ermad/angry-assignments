@@ -174,6 +174,7 @@ function AngryAssign:ProcessMessage(sender, data)
 
 	elseif cmd == "REQUEST_DISPLAY" then
 		if sender == UnitName('player') then return end
+		if not self:IsPlayerRaidLeader() then return end
 
 		self:SendDisplay( AngryAssign_State.displayed )
 
@@ -987,6 +988,11 @@ function AngryAssign:UpdateOfficerRank()
 	end
 end
 
+function AngryAssign:IsPlayerRaidLeader()
+	local leader = self:GetRaidLeader()
+	return leader and EnsureUnitFullName(UnitName('player')) == EnsureUnitFullName(leader)
+end
+
 function AngryAssign:IsValidRaid()
 	if self:GetConfig('allowall') then
 		return true
@@ -1003,12 +1009,12 @@ function AngryAssign:IsValidRaid()
 	end
 	
 	for token in string.gmatch( AngryAssign:GetConfig('allowplayers') , "[-%w]+") do
-		if leader and EnsureUnitFullName(token) == EnsureUnitFullName(leader) then
+		if leader and EnsureUnitFullName(token):lower() == EnsureUnitFullName(leader):lower() then
 			return true
 		end
 	end
 
-	if leader and EnsureUnitFullName(UnitName('player')) == EnsureUnitFullName(leader) then
+	if self:IsPlayerRaidLeader() then
 		return true
 	end
 	
