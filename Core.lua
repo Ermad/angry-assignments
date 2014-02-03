@@ -1541,7 +1541,7 @@ function AngryAssign:OnInitialize()
 					if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 						versionList = {} -- start with a fresh version list, when displaying it
 						self:SendMessage({ "VER_QUERY" }) 
-						self:ScheduleTimer("VersionCheckOutput", 2)
+						self:ScheduleTimer("VersionCheckOutput", 3)
 						self:Print("Version check running...")
 					else
 						self:Print("You must be in a raid group to run the version check.")

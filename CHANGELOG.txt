@@ -1,3 +1,7 @@
+## v1.0.2
+
+* Various minor bug fixes
+
 ## v1.0.1
 
 * Currently displayed page is now cleared when the raid leader is changed
