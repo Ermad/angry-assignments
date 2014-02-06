@@ -275,7 +275,7 @@ end
 
 function AngryAssign:SendRequestDisplay()
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		local to = self:GetRaidLeader()
+		local to = self:GetRaidLeader(true)
 		if to then self:SendMessage({ "REQUEST_DISPLAY" }, "WHISPER", to) end
 	end
 end
@@ -318,17 +318,21 @@ end
 
 function AngryAssign:SendRequestPage(id, to)
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) or to then
-		if not to then to = self:GetRaidLeader() end
+		if not to then to = self:GetRaidLeader(true) end
 		if to then self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to) end
 	end
 end
 
-function AngryAssign:GetRaidLeader()
+function AngryAssign:GetRaidLeader(online_only)
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
-			local name, rank = GetRaidRosterInfo(i)
+			local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML  = GetRaidRosterInfo(i)
 			if rank == 2 then
-				return name
+				if (not online_only) or online then
+					return name
+				else
+					return nil
+				end
 			end
 		end
 	end
