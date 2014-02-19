@@ -83,6 +83,10 @@ local function EnsureUnitFullName(unit)
    return unit
 end
 
+local function PlayerFullName()
+	return UnitName('player')..'-'..select(2, UnitFullName('player'))
+end
+
 -------------------------
 -- Addon Communication --
 -------------------------
@@ -117,9 +121,11 @@ end
 
 function AngryAssign:ProcessMessage(sender, data)
 	local cmd = data[COMMAND]
+	sender = EnsureUnitFullName(sender)
+	
 	-- self:Print("Received "..data[COMMAND].." from "..sender)
 	if cmd == "PAGE" then
-		if sender == UnitName('player') then return end
+		if sender == PlayerFullName() then return end
 		if not self:PermissionCheck(sender) then
 			self:PermissionCheckFailError(sender)
 			return
@@ -151,7 +157,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		self:UpdateTree()
 
 	elseif cmd == "DISPLAY" then
-		if sender == UnitName('player') then return end
+		if sender == PlayerFullName() then return end
 		if not self:PermissionCheck(sender) then
 			if data[DISPLAY_Id] then self:PermissionCheckFailError(sender) end
 			return
@@ -173,13 +179,13 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 
 	elseif cmd == "REQUEST_DISPLAY" then
-		if sender == UnitName('player') then return end
+		if sender == PlayerFullName() then return end
 		if not self:IsPlayerRaidLeader() then return end
 
 		self:SendDisplay( AngryAssign_State.displayed )
 
 	elseif cmd == "REQUEST_PAGE" then
-		if sender == UnitName('player') then return end
+		if sender == PlayerFullName() then return end
 		
 		self:SendPage( data[REQUEST_PAGE_Id] )
 
@@ -329,7 +335,7 @@ function AngryAssign:GetRaidLeader(online_only)
 			local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML  = GetRaidRosterInfo(i)
 			if rank == 2 then
 				if (not online_only) or online then
-					return name
+					return EnsureUnitFullName(name)
 				else
 					return nil
 				end
@@ -340,11 +346,11 @@ function AngryAssign:GetRaidLeader(online_only)
 end
 
 function AngryAssign:GetCurrentGroup()
-	local player = UnitName('player')
+	local player = PlayerFullName()
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, subgroup = GetRaidRosterInfo(i)
-			if name == player then
+			if EnsureUnitFullName(name) == player then
 				return subgroup
 			end
 		end
@@ -995,7 +1001,7 @@ end
 
 function AngryAssign:IsPlayerRaidLeader()
 	local leader = self:GetRaidLeader()
-	return leader and EnsureUnitFullName(UnitName('player')) == EnsureUnitFullName(leader)
+	return leader and PlayerFullName() == EnsureUnitFullName(leader)
 end
 
 function AngryAssign:IsValidRaid()
@@ -1005,7 +1011,7 @@ function AngryAssign:IsValidRaid()
 	
 	local leader = self:GetRaidLeader()
 	
-	if leader == 'Ermod' and guildName == 'Angry' then
+	if leader == 'Ermod-Illidan' and guildName == 'Angry' then
 		return true
 	end
 	
@@ -1027,12 +1033,12 @@ function AngryAssign:IsValidRaid()
 end
 
 function AngryAssign:PermissionCheck(sender)
-	if not sender then sender = UnitName('player') end
+	if not sender then sender = PlayerFullName() end
 
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		return (UnitIsGroupLeader(sender) or UnitIsGroupAssistant(sender)) and self:IsValidRaid()
 	else
-		return sender == UnitName('player')
+		return sender == PlayerFullName()
 	end
 end
 
