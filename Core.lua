@@ -213,7 +213,7 @@ end
 
 function AngryAssign:PermissionCheckFailError(sender)
 	if not warnedPermission then
-		self:Print( RED_FONT_COLOR_CODE .. "You have received a page update from "..sender.." that was rejected due to insufficient permissions. If you wish to see this page, please adjust your permission settings.|r" )
+		self:Print( RED_FONT_COLOR_CODE .. "You have received a page update from "..Ambiguate(sender, "none").." that was rejected due to insufficient permissions. If you wish to see this page, please adjust your permission settings.|r" )
 		warnedPermission = true
 	end
 end
@@ -370,13 +370,14 @@ function AngryAssign:VersionCheckOutput()
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, _, _, _, _, _, online = GetRaidRosterInfo(i)
+			local fullname = EnsureUnitFullName(name)
 			if online then
-				if not versionList[ name ] then
+				if not versionList[ fullname ] then
 					tinsert(missing_addon, name)
-				elseif versionList[ name ].valid == false or (versionList[ name ].valid == nil and self:GetGuildRank(name) == 100) then
+				elseif versionList[ fullname ].valid == false or (versionList[ fullname ].valid == nil and self:GetGuildRank(name) == 100) then
 					tinsert(invalid_raid, name)
-				elseif ver ~= versionList[ name ].version then
-					tinsert(different_version, string.format("%s - %s", name, versionList[ name ].version)  )
+				elseif ver ~= versionList[ fullname ].version then
+					tinsert(different_version, string.format("%s - %s", name, versionList[ fullname ].version)  )
 				else
 					tinsert(up_to_date, name)
 				end
