@@ -1753,7 +1753,7 @@ end
 
 function AngryAssign:PARTY_LEADER_CHANGED()
 	self:PermissionsUpdated()
-	if AngryAssign_State.displayed then self:ClearDisplayed() end
+	if AngryAssign_State.displayed and not self:IsValidRaid() then self:ClearDisplayed() end
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
