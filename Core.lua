@@ -77,7 +77,7 @@ local VERSION_Timestamp = 3
 local VERSION_ValidRaid = 4
 
 local function EnsureUnitFullName(unit)
-   if not unit:find('-') then
+   if unit and not unit:find('-') then
       unit = unit..'-'..select(2, UnitFullName('player'))
    end
    return unit
