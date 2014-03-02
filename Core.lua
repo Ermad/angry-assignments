@@ -1785,7 +1785,6 @@ function AngryAssign:PARTY_CONVERTED_TO_RAID()
 end
 
 function AngryAssign:GROUP_JOINED()
-	self:SendRequestDisplay()
 	self:SendVerQuery()
 	self:UpdateDisplayedIfNewGroup()
 	self:ScheduleTimer("SendRequestDisplay", 0.5)
