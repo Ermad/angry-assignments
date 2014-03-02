@@ -1005,6 +1005,21 @@ function AngryAssign:IsPlayerRaidLeader()
 	return leader and PlayerFullName() == EnsureUnitFullName(leader)
 end
 
+function AngryAssign:IsGuildRaid()
+	local leader = self:GetRaidLeader()
+	
+	if leader == 'Ermod-Illidan' and guildName == 'Angry' then
+		return true
+	end
+	
+	if self:GetGuildRank(leader) <= officerGuildRank then -- If leader is in current guild and an officer rank
+		return true
+	end
+	
+	return false
+end
+	
+	
 function AngryAssign:IsValidRaid()
 	if self:GetConfig('allowall') then
 		return true
@@ -1760,7 +1775,7 @@ end
 
 function AngryAssign:PARTY_LEADER_CHANGED()
 	self:PermissionsUpdated()
-	if AngryAssign_State.displayed and not self:IsValidRaid() then self:ClearDisplayed() end
+	if AngryAssign_State.displayed and not self:IsGuildRaid() then self:ClearDisplayed() end
 end
 
 function AngryAssign:PARTY_CONVERTED_TO_RAID()
