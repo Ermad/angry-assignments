@@ -1773,6 +1773,7 @@ function AngryAssign:GROUP_JOINED()
 	self:SendRequestDisplay()
 	self:SendVerQuery()
 	self:UpdateDisplayedIfNewGroup()
+	self:ScheduleTimer("SendRequestDisplay", 0.5)
 end
 
 function AngryAssign:PLAYER_REGEN_DISABLED()
