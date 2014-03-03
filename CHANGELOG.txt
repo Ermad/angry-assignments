@@ -1,6 +1,7 @@
 ## v1.1.2
 
-* Small bug fixes related to event timings
+* Small bug fix for players joining a raid
+* Minor bug fixes with event ordering
 
 ## v1.1.1
 
