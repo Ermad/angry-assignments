@@ -1761,11 +1761,7 @@ function AngryAssign:OnEnable()
 	
 	self:ScheduleTimer("AfterEnable", 4)
 
-	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
-	self:RegisterEvent("PARTY_LEADER_CHANGED")
-	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
-	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 	self:RegisterEvent("PLAYER_GUILD_UPDATE")
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
@@ -1815,6 +1811,11 @@ function AngryAssign:AfterEnable()
 	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
 		self:ClearDisplayed()
 	end
+	
+	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
+	self:RegisterEvent("PARTY_LEADER_CHANGED")
+	self:RegisterEvent("GROUP_JOINED")
+	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 	
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()

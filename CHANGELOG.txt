@@ -1,6 +1,6 @@
 ## v1.1.2
 
-* Small bug fixes
+* Small bug fixes related to event timings
 
 ## v1.1.1
 
