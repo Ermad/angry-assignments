@@ -1804,7 +1804,13 @@ function AngryAssign:GROUP_ROSTER_UPDATE()
 end
 
 function AngryAssign:PLAYER_GUILD_UPDATE()
+	GuildRoster()
+end
+
+function AngryAssign:GUILD_ROSTER_UPDATE()
 	self:UpdateOfficerRank()
+	self:PermissionsUpdated()
+	self:UnregisterEvent("GUILD_ROSTER_UPDATE")
 end
 
 function AngryAssign:AfterEnable()
