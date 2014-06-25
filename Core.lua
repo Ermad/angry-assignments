@@ -506,13 +506,21 @@ local function AngryAssign_RevertPage(widget, event, value)
 	AngryAssign:UpdateSelected(true)
 end
 
-local function AngryAssign_DisplayPage(widget, event, value)
-	if not AngryAssign:PermissionCheck() then return end
-	local id = AngryAssign:SelectedId()
+function AngryAssign:DisplayPageByName( name )
+	for id, page in pairs(AngryAssign_Pages) do
+		if page.Name == name then
+			return self:DisplayPage( id )
+		end
+	end
+	return false
+end
 
-	AngryAssign:TouchPage( id )
-	AngryAssign:SendPage( id, true )
-	AngryAssign:SendDisplay( id, true )
+function AngryAssign:DisplayPage( id )
+	if not self:PermissionCheck() then return end
+
+	self:TouchPage( id )
+	self:SendPage( id, true )
+	self:SendDisplay( id, true )
 	
 	if (true or IsInRaid(LE_PARTY_CATEGORY_HOME)) and AngryAssign_State.displayed ~= id then
 		AngryAssign_State.displayed = AngryAssign:SelectedId()
@@ -521,6 +529,12 @@ local function AngryAssign_DisplayPage(widget, event, value)
 		AngryAssign:UpdateTree()
 		AngryAssign:DisplayUpdateNotification()
 	end
+end
+
+local function AngryAssign_DisplayPage(widget, event, value)
+	if not AngryAssign:PermissionCheck() then return end
+	local id = AngryAssign:SelectedId()
+	AngryAssign:DisplayPage( id )
 end
 
 local function AngryAssign_ClearPage(widget, event, value)
@@ -1537,6 +1551,19 @@ function AngryAssign:OnInitialize()
 				confirm = true,
 				func = function()
 					self:RestoreDefaults()
+				end
+			},
+			send = {
+				type = "execute",
+				name = "Send and Display",
+				desc = "Sends page with specified name",
+				order = 10,
+				hidden = true,
+				cmdHidden = false,
+				confirm = true,
+				func = function(input)
+					local name = trim()
+					self:DisplayPageByName( name )
 				end
 			},
 			backup = {
