@@ -44,13 +44,13 @@ local currentGroup = nil
 --
 -- Format for our addon communication
 --
--- { "PAGE", [Id], [Last Update Timestamp], [Name], [Contents] }
--- Sent when a page is updated. Id is a random unique value. Uses RAID.
+-- { "PAGE", [Id], [Last Update Timestamp], [Name], [Contents], [Last Update Unique Id] }
+-- Sent when a page is updated. Id is a random unique value. Unique Id is hash of page contents. Uses RAID.
 --
 -- { "REQUEST_PAGE", [Id] }
 -- Asks to be sent PAGE with given Id. Response is a throttled PAGE. Uses WHISPER to raid leader.
 --
--- { "DISPLAY", [Id], [Last Update Timestamp] }
+-- { "DISPLAY", [Id], [Last Update Timestamp], [Last Update Unique Id] }
 -- Raid leader / promoted sends out when new page is to be displayed. Uses RAID.
 --
 -- { "REQUEST_DISPLAY" }
@@ -66,11 +66,13 @@ local PAGE_Id = 2
 local PAGE_Updated = 3
 local PAGE_Name = 4
 local PAGE_Contents = 5
+local PAGE_UpdateId = 6
 
 local REQUEST_PAGE_Id = 2
 
 local DISPLAY_Id = 2
 local DISPLAY_Updated = 3
+local DISPLAY_UpdateId = 4
 
 local VERSION_Version = 2
 local VERSION_Timestamp = 3
@@ -135,9 +137,10 @@ function AngryAssign:ProcessMessage(sender, data)
 		local id = data[PAGE_Id]
 		local page = AngryAssign_Pages[id]
 		if page then
-			if page.Updated >= data[PAGE_Updated] then return end -- The version received is not newer then the one we already have
+			if page.UpdateId == data[PAGE_UpdateId] then return end -- The version received is same as the one we already have
 
 			page.Updated = data[PAGE_Updated]
+			page.UpdateId = data[PAGE_UpdateId]
 			page.Name = data[PAGE_Name]
 			contents_updated = page.Contents ~= data[PAGE_Contents]
 			page.Contents = data[PAGE_Contents]
@@ -147,7 +150,7 @@ function AngryAssign:ProcessMessage(sender, data)
 				self:UpdateSelected()
 			end
 		else
-			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
+			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], UpdateId = data[PAGE_UpdateId], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
 		end
 		if AngryAssign_State.displayed == id then
 			self:UpdateDisplayed()
@@ -164,9 +167,9 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 
 		local id = data[DISPLAY_Id]
-		local updated = data[DISPLAY_Updated]
+		local updateId = data[DISPLAY_UpdateId]
 		local page = AngryAssign_Pages[id]
-		if id and (not page or updated > page.Updated) then
+		if id and (not page or updateId ~= page.UpdateId) then
 			self:SendRequestPage(id, sender)
 		end
 		
@@ -245,7 +248,8 @@ function AngryAssign:SendPageMessage(id)
 	
 	local page = AngryAssign_Pages[ id ]
 	if not page then error("Can't send page, does not exist"); return end
-	self:SendMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents })
+	if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
+	self:SendMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents, [PAGE_UpdateId] = page.UpdateId })
 end
 
 function AngryAssign:SendDisplay(id, force)
@@ -273,9 +277,10 @@ function AngryAssign:SendDisplayMessage(id)
 	
 	local page = AngryAssign_Pages[ id ]
 	if not page then
-		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil }, "RAID") 
+		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil }, "RAID") 
 	else
-		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated }, "RAID") 
+		if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
+		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId }, "RAID") 
 	end
 end
 
@@ -904,11 +909,19 @@ function AngryAssign:Get(id)
 	return AngryAssign_Pages[id]
 end
 
+function AngryAssign:Hash(name, contents)
+	local code = libC:fcs32init()
+	code = libC:fcs32update(code, name)
+	code = libC:fcs32update(code, "\n")
+	code = libC:fcs32update(code, contents)
+	return libC:fcs32final(code)
+end
+
 function AngryAssign:CreatePage(name)
 	if not self:PermissionCheck() then return end
 	local id = math.random(2000000000)
 
-	AngryAssign_Pages[id] = { Id = id, Updated = time(), Name = name, Contents = "" }
+	AngryAssign_Pages[id] = { Id = id, Updated = time(), UpdateId = self:Hash(name, ""), Name = name, Contents = "" }
 	self:UpdateTree(id)
 	self:SendPage(id, true)
 end
@@ -919,6 +932,7 @@ function AngryAssign:RenamePage(id, name)
 
 	page.Name = name
 	page.Updated = time()
+	page.UpdateId = self:Hash(page.Name, page.Contents)
 
 	self:SendPage(id, true)
 	self:UpdateTree()
@@ -958,6 +972,7 @@ function AngryAssign:UpdateContents(id, value)
 	page.Contents = new_content
 	page.Backup = new_content
 	page.Updated = time()
+	page.UpdateId = self:Hash(page.Name, page.Contents)
 
 	self:SendPage(id, true)
 	self:UpdateSelected(true)
