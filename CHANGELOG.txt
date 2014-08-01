@@ -1,3 +1,8 @@
+## v1.2
+
+* Implemented command "/aa send <name>" which sends the page with the specified name. 
+* Uses hashes instead of timestamps to determine if a page has been updated. Fixes an issue where users would have their changes rejected if their system clock was not set correctly.
+
 ## v1.1.3
 
 * Bug fix for permissions when joining/leaving guilds

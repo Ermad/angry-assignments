@@ -38,7 +38,7 @@ local currentGroup = nil
 
 -- Pages Saved Variable Format 
 -- 	AngryAssign_Pages = {
--- 		[Id] = { Id = "1231", Updated = time(), Name = "Name", Contents = "...", Backup = "..." },
+-- 		[Id] = { Id = "1231", Updated = time(), UpdateId = self:Hash(name, contents), Name = "Name", Contents = "...", Backup = "..." },
 --		...
 -- 	}
 --
@@ -119,6 +119,7 @@ function AngryAssign:SendMessage(data, channel, target)
 
 	-- self:Print("Sending "..data[COMMAND].." over "..destChannel.." to "..tostring(target))
 	self:SendCommMessage(comPrefix, final, destChannel, target, "NORMAL")
+	return true
 end
 
 function AngryAssign:ProcessMessage(sender, data)
@@ -170,8 +171,8 @@ function AngryAssign:ProcessMessage(sender, data)
 		local updated = data[DISPLAY_Updated]
 		local updateId = data[DISPLAY_UpdateId]
 		local page = AngryAssign_Pages[id]
-		local sameVersion = (updateId and updateId == page.UpdateId) or (not updateId and updated == page.Updated)
-		if id and (not page or not sameVersion) then
+		local sameVersion = (updateId and page and updateId == page.UpdateId) or (not updateId and page and updated == page.Updated)
+		if id and not sameVersion then
 			self:SendRequestPage(id, sender)
 		end
 		
