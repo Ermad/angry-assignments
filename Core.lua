@@ -137,13 +137,13 @@ function AngryAssign:ProcessMessage(sender, data)
 		local id = data[PAGE_Id]
 		local page = AngryAssign_Pages[id]
 		if page then
-			if page.UpdateId == data[PAGE_UpdateId] then return end -- The version received is same as the one we already have
+			if data[PAGE_UpdateId] and page.UpdateId == data[PAGE_UpdateId] then return end -- The version received is same as the one we already have
 
-			page.Updated = data[PAGE_Updated]
-			page.UpdateId = data[PAGE_UpdateId]
-			page.Name = data[PAGE_Name]
 			contents_updated = page.Contents ~= data[PAGE_Contents]
+			page.Name = data[PAGE_Name]
 			page.Contents = data[PAGE_Contents]
+			page.Updated = data[PAGE_Updated]
+			page.UpdateId = data[PAGE_UpdateId] or self:Hash(page.Name, page.Contents)
 
 			if self:SelectedId() == id then
 				self:SelectedUpdated(sender)
@@ -167,9 +167,11 @@ function AngryAssign:ProcessMessage(sender, data)
 		end
 
 		local id = data[DISPLAY_Id]
+		local updated = data[DISPLAY_Updated]
 		local updateId = data[DISPLAY_UpdateId]
 		local page = AngryAssign_Pages[id]
-		if id and (not page or updateId ~= page.UpdateId) then
+		local sameVersion = (updateId and updateId == page.UpdateId) or (not updateId and updated == page.Updated)
+		if id and (not page or not sameVersion) then
 			self:SendRequestPage(id, sender)
 		end
 		
