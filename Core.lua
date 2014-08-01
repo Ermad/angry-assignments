@@ -530,7 +530,7 @@ function AngryAssign:DisplayPage( id )
 	self:SendDisplay( id, true )
 	
 	if (true or IsInRaid(LE_PARTY_CATEGORY_HOME)) and AngryAssign_State.displayed ~= id then
-		AngryAssign_State.displayed = AngryAssign:SelectedId()
+		AngryAssign_State.displayed = id
 		AngryAssign:UpdateDisplayed()
 		AngryAssign:ShowDisplay()
 		AngryAssign:UpdateTree()
@@ -1571,16 +1571,16 @@ function AngryAssign:OnInitialize()
 				end
 			},
 			send = {
-				type = "execute",
+				type = "input",
 				name = "Send and Display",
 				desc = "Sends page with specified name",
 				order = 10,
 				hidden = true,
 				cmdHidden = false,
 				confirm = true,
-				func = function(input)
-					local name = trim()
-					self:DisplayPageByName( name )
+				get = function(info) return "" end,
+				set = function(info, val)
+					self:DisplayPageByName( val:trim() )
 				end
 			},
 			backup = {
