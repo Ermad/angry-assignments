@@ -537,6 +537,8 @@ function AngryAssign:DisplayPage( id )
 		AngryAssign:UpdateTree()
 		AngryAssign:DisplayUpdateNotification()
 	end
+	
+	return true
 end
 
 local function AngryAssign_DisplayPage(widget, event, value)
@@ -1581,7 +1583,12 @@ function AngryAssign:OnInitialize()
 				confirm = true,
 				get = function(info) return "" end,
 				set = function(info, val)
-					self:DisplayPageByName( val:trim() )
+					local result = self:DisplayPageByName( val:trim() )
+					if result == false then
+						self:Print( RED_FONT_COLOR_CODE .. "A page of the name \""..val:trim().."\" could not be found.|r" )
+					elseif not result then 
+						self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to send a page..|r" )
+					end
 				end
 			},
 			backup = {
