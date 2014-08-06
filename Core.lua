@@ -78,15 +78,18 @@ local VERSION_Version = 2
 local VERSION_Timestamp = 3
 local VERSION_ValidRaid = 4
 
+local _player_realm = nil
 local function EnsureUnitFullName(unit)
-   if unit and not unit:find('-') then
-      unit = unit..'-'..select(2, UnitFullName('player'))
-   end
-   return unit
+	if not _player_realm then _player_realm = select(2, UnitFullName('player')) end
+	if unit and not unit:find('-') then
+		unit = unit..'-'.._player_realm
+	end
+	return unit
 end
 
 local function PlayerFullName()
-	return UnitName('player')..'-'..select(2, UnitFullName('player'))
+	if not _player_realm then _player_realm = select(2, UnitFullName('player')) end
+	return UnitName('player')..'-'.._player_realm
 end
 
 -------------------------
@@ -1585,7 +1588,7 @@ function AngryAssign:OnInitialize()
 				set = function(info, val)
 					local result = self:DisplayPageByName( val:trim() )
 					if result == false then
-						self:Print( RED_FONT_COLOR_CODE .. "A page of the name \""..val:trim().."\" could not be found.|r" )
+						self:Print( RED_FONT_COLOR_CODE .. "A page with the name \""..val:trim().."\" could not be found.|r" )
 					elseif not result then 
 						self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to send a page..|r" )
 					end
