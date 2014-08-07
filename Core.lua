@@ -1072,7 +1072,7 @@ function AngryAssign:IsValidRaid()
 		return true
 	end
 	
-	for token in string.gmatch( AngryAssign:GetConfig('allowplayers') , "[-%w]+") do
+	for token in string.gmatch( AngryAssign:GetConfig('allowplayers') , "[^%s!#$%%&()*+,./:;<=>?@\\^_{|}~%[%]]+") do
 		if leader and EnsureUnitFullName(token):lower() == EnsureUnitFullName(leader):lower() then
 			return true
 		end
@@ -1386,7 +1386,7 @@ function AngryAssign:UpdateDisplayed()
 		local text = page.Contents
 
 		local highlights = { }
-		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "%w+") do
+		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "[^%s%p]+") do
 			token = token:lower()
 			if token == 'group'then
 				tinsert(highlights, 'g'..(currentGroup or 0))
@@ -1404,7 +1404,7 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('|corange'), "|cffff9d00")
 			:gsub(ci_pattern('|cpink'), "|cfff64c97")
 			:gsub(ci_pattern('|cpurple'), "|cffdc44eb")
-			:gsub("(%w+)", function(word)
+			:gsub("([^%s%p]+)", function(word)
 				local word_lower = word:lower()
 				for _, token in ipairs(highlights) do
 					if token == word_lower then

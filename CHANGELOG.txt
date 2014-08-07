@@ -1,3 +1,7 @@
+## v1.2.1
+
+* Improved support for names containing non-latin characters
+
 ## v1.2
 
 * Implemented command "/aa send <name>" which sends the page with the specified name. 
