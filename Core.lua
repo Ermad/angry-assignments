@@ -1099,7 +1099,7 @@ function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = PlayerFullName() end
 
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		return (UnitIsGroupLeader(EnsureUnitShortName(sender), LE_PARTY_CATEGORY_HOME) == true or UnitIsGroupAssistant(EnsureUnitShortName(sender), LE_PARTY_CATEGORY_HOME) == true) and self:IsValidRaid()
+		return (UnitIsGroupLeader(EnsureUnitShortName(sender)) == true or UnitIsGroupAssistant(EnsureUnitShortName(sender)) == true) and self:IsValidRaid()
 	else
 		return sender == PlayerFullName()
 	end

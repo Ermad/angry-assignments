@@ -1,3 +1,7 @@
+## v1.3
+
+* Fixed an issue where non raid assistants were able to edit pages
+
 ## v1.2.1
 
 * Improved support for names containing non-latin characters
