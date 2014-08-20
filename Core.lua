@@ -87,6 +87,16 @@ local function EnsureUnitFullName(unit)
 	return unit
 end
 
+local function EnsureUnitShortName(unit)
+	if not _player_realm then _player_realm = select(2, UnitFullName('player')) end
+	local name, realm = strsplit("-", unit, 2)
+	if not realm or realm == _player_realm then
+		return name
+	else
+		return unit
+	end
+end
+
 local function PlayerFullName()
 	if not _player_realm then _player_realm = select(2, UnitFullName('player')) end
 	return UnitName('player')..'-'.._player_realm
@@ -1089,7 +1099,7 @@ function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = PlayerFullName() end
 
 	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		return (UnitIsGroupLeader(sender) or UnitIsGroupAssistant(sender)) and self:IsValidRaid()
+		return (UnitIsGroupLeader(EnsureUnitShortName(sender), LE_PARTY_CATEGORY_HOME) == true or UnitIsGroupAssistant(EnsureUnitShortName(sender), LE_PARTY_CATEGORY_HOME) == true) and self:IsValidRaid()
 	else
 		return sender == PlayerFullName()
 	end
