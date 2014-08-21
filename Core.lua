@@ -125,13 +125,21 @@ function AngryAssign:SendMessage(data, channel, target)
 	local one = libS:Serialize( data )
 	local two = libC:CompressHuffman(one)
 	local final = libCE:Encode(two)
-	local destChannel = channel or default_channel
+	if not channel then
+		if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
+			channel = "INSTANCE_CHAT"
+		elseif IsInRaid() then
+			channel = "RAID"
+		elseif IsInGroup() then
+			channel = "PARTY"
+		end
+	end
 
-	if destChannel == "RAID" and not IsInRaid(LE_PARTY_CATEGORY_HOME) then return end
-	if destChannel == "GUILD" and not guildName then return end
+	if not channel then return end
+	if channel == "GUILD" and not guildName then return end
 
-	-- self:Print("Sending "..data[COMMAND].." over "..destChannel.." to "..tostring(target))
-	self:SendCommMessage(comPrefix, final, destChannel, target, "NORMAL")
+	-- self:Print("Sending "..data[COMMAND].." over "..channel.." to "..tostring(target))
+	self:SendCommMessage(comPrefix, final, channel, target, "NORMAL")
 	return true
 end
 
@@ -293,15 +301,15 @@ function AngryAssign:SendDisplayMessage(id)
 	
 	local page = AngryAssign_Pages[ id ]
 	if not page then
-		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil }, "RAID") 
+		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil }) 
 	else
 		if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
-		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId }, "RAID") 
+		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId }) 
 	end
 end
 
 function AngryAssign:SendRequestDisplay()
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if (IsInRaid() or IsInGroup()) then
 		local to = self:GetRaidLeader(true)
 		if to then self:SendMessage({ "REQUEST_DISPLAY" }, "WHISPER", to) end
 	end
@@ -344,14 +352,14 @@ function AngryAssign:SendVerQuery()
 end
 
 function AngryAssign:SendRequestPage(id, to)
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) or to then
+	if (IsInRaid() or IsInGroup()) or to then
 		if not to then to = self:GetRaidLeader(true) end
 		if to then self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to) end
 	end
 end
 
 function AngryAssign:GetRaidLeader(online_only)
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if (IsInRaid() or IsInGroup()) then
 		for i = 1, GetNumGroupMembers() do
 			local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML  = GetRaidRosterInfo(i)
 			if rank == 2 then
@@ -368,7 +376,7 @@ end
 
 function AngryAssign:GetCurrentGroup()
 	local player = PlayerFullName()
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if (IsInRaid() or IsInGroup()) then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, subgroup = GetRaidRosterInfo(i)
 			if EnsureUnitFullName(name) == player then
@@ -388,7 +396,7 @@ function AngryAssign:VersionCheckOutput()
 	local ver = AngryAssign_Version
 	if ver:sub(1,1) == "@" then ver = "dev" end
 	
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if (IsInRaid() or IsInGroup()) then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, _, _, _, _, _, online = GetRaidRosterInfo(i)
 			local fullname = EnsureUnitFullName(name)
@@ -543,7 +551,7 @@ function AngryAssign:DisplayPage( id )
 	self:SendPage( id, true )
 	self:SendDisplay( id, true )
 	
-	if (true or IsInRaid(LE_PARTY_CATEGORY_HOME)) and AngryAssign_State.displayed ~= id then
+	if AngryAssign_State.displayed ~= id then
 		AngryAssign_State.displayed = id
 		AngryAssign:UpdateDisplayed()
 		AngryAssign:ShowDisplay()
@@ -1098,7 +1106,7 @@ end
 function AngryAssign:PermissionCheck(sender)
 	if not sender then sender = PlayerFullName() end
 
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if (IsInRaid() or IsInGroup()) then
 		return (UnitIsGroupLeader(EnsureUnitShortName(sender)) == true or UnitIsGroupAssistant(EnsureUnitShortName(sender)) == true) and self:IsValidRaid()
 	else
 		return sender == PlayerFullName()
@@ -1109,7 +1117,7 @@ end
 function AngryAssign:PermissionsUpdated()
 	self:UpdateSelected()
 	self:SendRequestDisplay()
-	if IsInRaid(LE_PARTY_CATEGORY_HOME) and not self:IsValidRaid() then
+	if (IsInRaid() or IsInGroup()) and not self:IsValidRaid() then
 		self:ClearDisplayed()
 	end
 end
@@ -1629,7 +1637,7 @@ function AngryAssign:OnInitialize()
 				name = "Version Check",
 				desc = "Displays a list of all users (in the raid) running the addon and the version they're running",
 				func = function()
-					if IsInRaid(LE_PARTY_CATEGORY_HOME) then
+					if (IsInRaid() or IsInGroup()) then
 						versionList = {} -- start with a fresh version list, when displaying it
 						self:SendMessage({ "VER_QUERY" }) 
 						self:ScheduleTimer("VersionCheckOutput", 3)
@@ -1859,7 +1867,7 @@ end
 
 function AngryAssign:GROUP_ROSTER_UPDATE()
 	self:UpdateSelected()
-	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if not (IsInRaid() or IsInGroup()) then
 		if AngryAssign_State.displayed then self:ClearDisplayed() end
 		currentGroup = nil
 		warnedPermission = false
@@ -1881,7 +1889,7 @@ function AngryAssign:GUILD_ROSTER_UPDATE()
 end
 
 function AngryAssign:AfterEnable()
-	if not IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	if not (IsInRaid() or IsInGroup()) then
 		self:ClearDisplayed()
 	end
 	
