@@ -78,6 +78,10 @@ local VERSION_Version = 2
 local VERSION_Timestamp = 3
 local VERSION_ValidRaid = 4
 
+-----------------------
+-- Utility Functions --
+-----------------------
+
 local _player_realm = nil
 local function EnsureUnitFullName(unit)
 	if not _player_realm then _player_realm = select(2, UnitFullName('player')) end
@@ -100,6 +104,26 @@ end
 local function PlayerFullName()
 	if not _player_realm then _player_realm = select(2, UnitFullName('player')) end
 	return UnitName('player')..'-'.._player_realm
+end
+
+local function RGBToHex(r, g, b, a)
+	r = math.ceil(255 * r)
+	g = math.ceil(255 * g)
+	b = math.ceil(255 * b)
+	if a == nil then
+		return string.format("%02x%02x%02x", r, g, b)
+	else
+		a = math.ceil(255 * a)
+		return string.format("%02x%02x%02x%02x", r, g, b, a)
+	end
+end
+
+local function HexToRGB(hex)
+	if string.len(hex) == 8 then
+		return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255, tonumber("0x"..hex:sub(7,8)) / 255
+	else
+		return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255
+	end
 end
 
 -------------------------
@@ -1160,20 +1184,21 @@ function AngryAssign_ToggleDisplay()
 end
 
 function AngryAssign:ShowDisplay()
-	AngryAssign.display_text:Show() 
+	self.display_text:Show()
+	self:UpdateBackdrop()
 	AngryAssign_State.display.hidden = false
 end
 
 function AngryAssign:HideDisplay()
-	AngryAssign.display_text:Hide()
+	self.display_text:Hide()
 	AngryAssign_State.display.hidden = true
 end
 
 function AngryAssign:ToggleDisplay()
-	if AngryAssign.display_text:IsShown() then 
-		AngryAssign:HideDisplay()
+	if self.display_text:IsShown() then
+		self:HideDisplay()
 	else
-		AngryAssign:ShowDisplay()
+		self:ShowDisplay()
 	end
 end
 
@@ -1202,6 +1227,10 @@ function AngryAssign:CreateDisplay()
 	text:SetHeight(700)
 	text:SetHyperlinksEnabled(false)
 	self.display_text = text
+
+	local backdrop = text:CreateTexture()
+	backdrop:SetDrawLayer("BACKGROUND")
+	self.backdrop = backdrop
 
 	local mover = CreateFrame("Frame", nil, frame)
 	mover:SetPoint("LEFT",0,0)
@@ -1256,7 +1285,8 @@ function AngryAssign:CreateDisplay()
 	dragtex:SetBlendMode("ADD")
 	dragtex:SetPoint("CENTER", drag)
 
-	local glow = text:CreateTexture(nil, "BACKGROUND")
+	local glow = text:CreateTexture()
+	glow:SetDrawLayer("BORDER")
 	glow:SetTexture("Interface\\LevelUp\\LevelUpTex")
 	glow:SetSize(223, 115)
 	glow:SetTexCoord(0.56054688, 0.99609375, 0.24218750, 0.46679688)
@@ -1264,7 +1294,8 @@ function AngryAssign:CreateDisplay()
 	glow:SetAlpha(0)
 	self.display_glow = glow
 
-	local glow2 = text:CreateTexture(nil, "BACKGROUND")
+	local glow2 = text:CreateTexture()
+	glow2:SetDrawLayer("BORDER")
 	glow2:SetTexture("Interface\\LevelUp\\LevelUpTex")
 	glow2:SetSize(418, 7)
 	glow2:SetTexCoord(0.00195313, 0.81835938, 0.01953125, 0.03320313)
@@ -1300,6 +1331,10 @@ function AngryAssign:UpdateDirection()
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
 
+		self.backdrop:ClearAllPoints()
+		self.backdrop:SetPoint("BOTTOMLEFT", -4, -4)
+		self.backdrop:SetPoint("BOTTOMRIGHT", 4, -4)
+
 		self.display_glow:ClearAllPoints()
 		self.display_glow:SetPoint("BOTTOM", 0, -4)
 		self.display_glow:SetTexCoord(0.56054688, 0.99609375, 0.24218750, 0.46679688)
@@ -1312,6 +1347,10 @@ function AngryAssign:UpdateDirection()
 		self.display_text:SetInsertMode("TOP")
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
+
+		self.backdrop:ClearAllPoints()
+		self.backdrop:SetPoint("TOPLEFT", -4, 4)
+		self.backdrop:SetPoint("TOPRIGHT", 4, 4)
 
 		self.display_glow:ClearAllPoints()
 		self.display_glow:SetPoint("TOP", 0, 4)
@@ -1326,6 +1365,29 @@ function AngryAssign:UpdateDirection()
 	self:UpdateDisplayed()
 end
 
+function AngryAssign:UpdateBackdrop()
+	local regions = { self.display_text:GetRegions() }
+
+	local min, max, last_height
+	for i, region in ipairs(regions) do
+		if region:GetObjectType() == "FontString" then
+			local position = region:GetBottom()
+			if min == nil or position < min then min = position end
+			if max == nil or position > max then
+				max = position
+				last_height = region:GetHeight()
+			end
+		end
+	end
+	if min ~= nil and max ~= nil and self:GetConfig('backdropShow') then
+		self.backdrop:SetHeight( max - min + last_height + 8 )
+		self.backdrop:SetTexture( HexToRGB(self:GetConfig('backdropColor')) )
+		self.backdrop:Show()
+	else
+		self.backdrop:Hide()
+	end
+end
+
 function AngryAssign:UpdateMedia()
 	local fontName = LSM:Fetch("font", AngryAssign:GetConfig('fontName'))
 	local fontHeight = AngryAssign:GetConfig('fontHeight')
@@ -1334,6 +1396,7 @@ function AngryAssign:UpdateMedia()
 	local hex = self:GetConfig('color')
 	self.display_text:SetTextColor(tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255)
 	self.display_text:SetFont(fontName, fontHeight, fontFlags)
+	self:UpdateBackdrop()
 end
 
 local updateFlasher, updateFlasher2 = nil, nil
@@ -1469,19 +1532,13 @@ function AngryAssign:UpdateDisplayed()
 	else
 		self.display_text:Clear()
 	end
+	self:UpdateBackdrop()
 end
 
 
 -----------------
 -- Addon Setup --
 -----------------
-
-local function RGBToHex(r, g, b)
-	r = math.ceil(255 * r)
-	g = math.ceil(255 * g)
-	b = math.ceil(255 * b)
-	return string.format("%02x%02x%02x", r, g, b)
-end
 
 local configDefaults = {
 	scale = 1,
@@ -1493,7 +1550,9 @@ local configDefaults = {
 	highlightColor = "ffd200",
 	color = "ffffff",
 	allowall = false,
-	allowplayers = ""
+	allowplayers = "",
+	backdropShow = false,
+	backdropColor = "00000080"
 }
 
 function AngryAssign:GetConfig(key)
@@ -1686,15 +1745,40 @@ function AngryAssign:OnInitialize()
 						type = "range",
 						order = 4,
 						name = "Scale",
-						desc = function() 
-							return "Sets the scale of the edit window"
-						end,
+						desc = "Sets the scale of the edit window",
 						min = 0.3,
 						max = 3,
 						get = function(info) return self:GetConfig('scale') end,
 						set = function(info, val)
 							self:SetConfig('scale', val)
 							if AngryAssign.window then AngryAssign.window.frame:SetScale(val) end
+						end
+					},
+					backdrop = {
+						type = "toggle",
+						order = 5,
+						name = "Display Backdrop",
+						desc = "Enable to display a backdrop behind the assignment display",
+						get = function(info) return self:GetConfig('backdropShow') end,
+						set = function(info, val)
+							self:SetConfig('backdropShow', val)
+							self:UpdateBackdrop()
+						end
+					},
+					backdropcolor = {
+						type = "color",
+						order = 6,
+						name = "Backdrop Color",
+						desc = "The color used the backdrop",
+						hasAlpha = true,
+						get = function(info)
+							local hex = self:GetConfig('backdropColor')
+							return HexToRGB(hex)
+						end,
+						set = function(info, r, g, b, a)
+							self:SetConfig('backdropColor', RGBToHex(r, g, b, a))
+							self:UpdateMedia()
+							self:UpdateDisplayed()
 						end
 					}
 				}
@@ -1753,7 +1837,7 @@ function AngryAssign:OnInitialize()
 						desc = "The normal color used to display assignments",
 						get = function(info)
 							local hex = self:GetConfig('color')
-							return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255
+							return HexToRGB(hex)
 						end,
 						set = function(info, r, g, b)
 							self:SetConfig('color', RGBToHex(r, g, b))
@@ -1768,7 +1852,7 @@ function AngryAssign:OnInitialize()
 						desc = "The color used to emphasize highlighted words",
 						get = function(info)
 							local hex = self:GetConfig('highlightColor')
-							return tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255
+							return HexToRGB(hex)
 						end,
 						set = function(info, r, g, b)
 							self:SetConfig('highlightColor', RGBToHex(r, g, b))
