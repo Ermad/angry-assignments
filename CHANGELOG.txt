@@ -1,3 +1,8 @@
+## v1.4
+
+* Implemented the option to display a background below assignments
+* Assignments can now also be used in party/instance groups instead of just raids
+
 ## v1.3
 
 * Fixed an issue where non raid assistants were able to edit pages
@@ -8,8 +13,8 @@
 
 ## v1.2
 
-* Implemented command "/aa send <name>" which sends the page with the specified name. 
-* Uses hashes instead of timestamps to determine if a page has been updated. Fixes an issue where users would have their changes rejected if their system clock was not set correctly.
+* Implemented command "/aa send <name>" which sends the page with the specified name
+* Uses hashes instead of timestamps to determine if a page has been updated. Fixes an issue where users would have their changes rejected if their system clock was not set correctly
 
 ## v1.1.3
 
