@@ -2,6 +2,7 @@
 
 * Implemented the option to display a background below assignments
 * Assignments can now also be used in party/instance groups instead of just raids
+* Added an option to change the color of the update notification glow
 
 ## v1.3
 

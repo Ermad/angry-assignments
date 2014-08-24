@@ -1287,19 +1287,19 @@ function AngryAssign:CreateDisplay()
 
 	local glow = text:CreateTexture()
 	glow:SetDrawLayer("BORDER")
-	glow:SetTexture("Interface\\LevelUp\\LevelUpTex")
+	glow:SetTexture("Interface\\AddOns\\AngryAssignments\\Textures\\LevelUpTex")
 	glow:SetSize(223, 115)
 	glow:SetTexCoord(0.56054688, 0.99609375, 0.24218750, 0.46679688)
-	glow:SetVertexColor(1, 0, 0, 1)
+	glow:SetVertexColor( HexToRGB(self:GetConfig('glowColor')) )
 	glow:SetAlpha(0)
 	self.display_glow = glow
 
 	local glow2 = text:CreateTexture()
 	glow2:SetDrawLayer("BORDER")
-	glow2:SetTexture("Interface\\LevelUp\\LevelUpTex")
+	glow2:SetTexture("Interface\\AddOns\\AngryAssignments\\Textures\\LevelUpTex")
 	glow2:SetSize(418, 7)
 	glow2:SetTexCoord(0.00195313, 0.81835938, 0.01953125, 0.03320313)
-	glow2:SetVertexColor(1, 0, 0, 1)
+	glow2:SetVertexColor( HexToRGB(self:GetConfig('glowColor')) )
 	glow2:SetAlpha(0)
 	self.display_glow2 = glow2
 
@@ -1392,9 +1392,8 @@ function AngryAssign:UpdateMedia()
 	local fontName = LSM:Fetch("font", AngryAssign:GetConfig('fontName'))
 	local fontHeight = AngryAssign:GetConfig('fontHeight')
 	local fontFlags = AngryAssign:GetConfig('fontFlags')
-
-	local hex = self:GetConfig('color')
-	self.display_text:SetTextColor(tonumber("0x"..hex:sub(1,2)) / 255, tonumber("0x"..hex:sub(3,4)) / 255, tonumber("0x"..hex:sub(5,6)) / 255)
+	
+	self.display_text:SetTextColor( HexToRGB(self:GetConfig('color')) )
 	self.display_text:SetFont(fontName, fontHeight, fontFlags)
 	self:UpdateBackdrop()
 end
@@ -1552,7 +1551,8 @@ local configDefaults = {
 	allowall = false,
 	allowplayers = "",
 	backdropShow = false,
-	backdropColor = "00000080"
+	backdropColor = "00000080",
+	glowColor = "FF0000"
 }
 
 function AngryAssign:GetConfig(key)
@@ -1769,7 +1769,7 @@ function AngryAssign:OnInitialize()
 						type = "color",
 						order = 6,
 						name = "Backdrop Color",
-						desc = "The color used the backdrop",
+						desc = "The color used by the backdrop",
 						hasAlpha = true,
 						get = function(info)
 							local hex = self:GetConfig('backdropColor')
@@ -1779,6 +1779,21 @@ function AngryAssign:OnInitialize()
 							self:SetConfig('backdropColor', RGBToHex(r, g, b, a))
 							self:UpdateMedia()
 							self:UpdateDisplayed()
+						end
+					},
+					updatecolor = {
+						type = "color",
+						order = 7,
+						name = "Update Notification Color",
+						desc = "The color used by the update notification glow",
+						get = function(info)
+							local hex = self:GetConfig('glowColor')
+							return HexToRGB(hex)
+						end,
+						set = function(info, r, g, b)
+							self:SetConfig('glowColor', RGBToHex(r, g, b))
+							self.display_glow:SetVertexColor(r, g, b)
+							self.display_glow2:SetVertexColor(r, g, b)
 						end
 					}
 				}
