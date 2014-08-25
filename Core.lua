@@ -1087,10 +1087,6 @@ end
 function AngryAssign:IsGuildRaid()
 	local leader = self:GetRaidLeader()
 	
-	if leader == 'Ermod-Illidan' and guildName == 'Angry' then
-		return true
-	end
-	
 	if self:GetGuildRank(leader) <= officerGuildRank then -- If leader is in current guild and an officer rank
 		return true
 	end
@@ -1105,10 +1101,6 @@ function AngryAssign:IsValidRaid()
 	end
 	
 	local leader = self:GetRaidLeader()
-	
-	if leader == 'Ermod-Illidan' and guildName == 'Angry' then
-		return true
-	end
 	
 	if self:GetGuildRank(leader) <= officerGuildRank then -- If leader is in current guild and an officer rank
 		return true
@@ -1156,6 +1148,7 @@ local function DragHandle_MouseUp(frame)
 	display:StopMovingOrSizing()
 	AngryAssign_State.display.width = display:GetWidth()
 	lwin.SavePosition(display)
+	AngryAssign:UpdateBackdrop()
 end
 local function Mover_MouseDown(frame) frame:GetParent():StartMoving() end
 local function Mover_MouseUp(frame)
