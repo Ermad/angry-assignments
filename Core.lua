@@ -14,7 +14,6 @@ BINDING_NAME_AngryAssign_DISPLAY = "Toggle Display"
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
 
-local default_channel = "RAID"
 local protocolVersion = 1
 local comPrefix = "AnAss"..protocolVersion
 local updateFrequency = 2
