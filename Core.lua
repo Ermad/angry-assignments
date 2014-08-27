@@ -10,6 +10,7 @@ BINDING_HEADER_AngryAssign = "Angry Assignments"
 BINDING_NAME_AngryAssign_WINDOW = "Toggle Window"
 BINDING_NAME_AngryAssign_LOCK = "Toggle Lock"
 BINDING_NAME_AngryAssign_DISPLAY = "Toggle Display"
+BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
@@ -731,6 +732,16 @@ function AngryAssign:CreateWindow()
 	button_clear:SetCallback("OnClick", AngryAssign_ClearPage)
 	window:AddChild(button_clear)
 	window.button_clear = button_clear
+	
+	local button_output = AceGUI:Create("Button")
+	button_output:SetText("Output")
+	button_output:SetWidth(80)
+	button_output:SetHeight(19)
+	button_output:ClearAllPoints()
+	button_output:SetPoint("BOTTOMLEFT", button_clear.frame, "BOTTOMRIGHT", 5, 0)
+	button_output:SetCallback("OnClick", AngryAssign_OutputDisplayed)
+	window:AddChild(button_output)
+	window.button_output = button_output
 
 	self:UpdateSelected(true)
 	
@@ -1526,6 +1537,30 @@ function AngryAssign:UpdateDisplayed()
 	self:UpdateBackdrop()
 end
 
+function AngryAssign_OutputDisplayed()
+	return AngryAssign:OutputDisplayed()
+end
+function AngryAssign:OutputDisplayed()
+	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
+	local channel
+	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
+		channel = "INSTANCE_CHAT"
+	elseif IsInRaid() then
+		channel = "RAID"
+	elseif IsInGroup() then
+		channel = "PARTY"
+	end
+	if channel and page then
+		local output = page.Contents
+		
+		local lines = { strsplit("\n", output) }
+		for _, line in ipairs(lines) do
+			if line ~= "" then
+				SendChatMessage(line, channel)
+			end
+		end
+	end
+end
 
 -----------------
 -- Addon Setup --
@@ -1645,11 +1680,23 @@ function AngryAssign:OnInitialize()
 					self:RestoreDefaults()
 				end
 			},
+			output = {
+				type = "execute",
+				name = "Output",
+				desc = "Outputs currently displayed assignents to chat",
+				order = 11,
+				hidden = true,
+				cmdHidden = false,
+				confirm = true,
+				func = function()
+					self:OutputDisplayed()
+				end
+			},
 			send = {
 				type = "input",
 				name = "Send and Display",
 				desc = "Sends page with specified name",
-				order = 10,
+				order = 12,
 				hidden = true,
 				cmdHidden = false,
 				confirm = true,

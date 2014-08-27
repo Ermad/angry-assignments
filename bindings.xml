@@ -8,4 +8,7 @@
 	<Binding name="AngryAssign_WINDOW" header="AngryAssign">
 		AngryAssign_ToggleWindow()
 	</Binding>
+	<Binding name="AngryAssign_OUTPUT" header="AngryAssign">
+		AngryAssign_OutputDisplayed()
+	</Binding>
 </Bindings>
