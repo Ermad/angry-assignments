@@ -1,3 +1,8 @@
+## v1.5
+
+* Updated ToC for WoW 6.0
+* Implemented ability to output current assignments to chat
+
 ## v1.4
 
 * Implemented the option to display a background below assignments
