@@ -950,9 +950,11 @@ function AngryAssign:UpdateSelected(destructive)
 	if permission then
 		self.window.button_add:SetDisabled(false)
 		self.window.button_clear:SetDisabled(false)
+		self.window.button_output:SetDisabled(false)
 	else
 		self.window.button_add:SetDisabled(true)
 		self.window.button_clear:SetDisabled(true)
+		self.window.button_output:SetDisabled(true)
 	end
 end
 
@@ -1541,6 +1543,9 @@ function AngryAssign_OutputDisplayed()
 	return AngryAssign:OutputDisplayed()
 end
 function AngryAssign:OutputDisplayed()
+	if not self:PermissionCheck() then
+		self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to output a page.|r" )
+	end
 	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
 	local channel
 	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
@@ -1706,7 +1711,7 @@ function AngryAssign:OnInitialize()
 					if result == false then
 						self:Print( RED_FONT_COLOR_CODE .. "A page with the name \""..val:trim().."\" could not be found.|r" )
 					elseif not result then 
-						self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to send a page..|r" )
+						self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to send a page.|r" )
 					end
 				end
 			},
