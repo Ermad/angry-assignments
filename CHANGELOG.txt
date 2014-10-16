@@ -1,6 +1,9 @@
-## v1.5
+## v1.5.1
 
 * Updated ToC for WoW 6.0
+
+## v1.5
+
 * Implemented ability to output current assignments to chat
 
 ## v1.4
