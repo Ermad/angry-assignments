@@ -1,3 +1,7 @@
+## v1.5.1
+
+* A few minor fixes
+
 ## v1.5
 
 * Updated ToC for WoW 6.0
