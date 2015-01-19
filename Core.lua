@@ -32,6 +32,8 @@ local officerGuildRank = nil -- The lowest officer guild rank
 local warnedOOD = false
 local versionList = {}
 
+local comnStarted = false
+
 local warnedPermission = false
 
 local currentGroup = nil
@@ -1144,7 +1146,9 @@ end
 
 function AngryAssign:PermissionsUpdated()
 	self:UpdateSelected()
-	self:SendRequestDisplay()
+	if comnStarted then
+		self:SendRequestDisplay()
+	end
 	if (IsInRaid() or IsInGroup()) and not self:IsValidRaid() then
 		self:ClearDisplayed()
 	end
@@ -1972,8 +1976,6 @@ end
 function AngryAssign:OnEnable()
 	self:UpdateOfficerRank()
 	self:CreateDisplay()
-
-	self:RegisterComm(comPrefix, "ReceiveMessage")
 	
 	self:ScheduleTimer("AfterEnable", 4)
 
@@ -2032,6 +2034,9 @@ function AngryAssign:GUILD_ROSTER_UPDATE()
 end
 
 function AngryAssign:AfterEnable()
+	self:RegisterComm(comPrefix, "ReceiveMessage")
+	comnStarted = true
+
 	if not (IsInRaid() or IsInGroup()) then
 		self:ClearDisplayed()
 	end
