@@ -1561,6 +1561,34 @@ function AngryAssign:OutputDisplayed()
 	end
 	if channel and page then
 		local output = page.Contents
+
+		output = output:gsub("||", "|")
+			:gsub(ci_pattern('|cblue'), "|cff00cbf4")
+			:gsub(ci_pattern('|cgreen'), "|cff0adc00")
+			:gsub(ci_pattern('|cred'), "|cffeb310c")
+			:gsub(ci_pattern('|cyellow'), "|cfffaf318")
+			:gsub(ci_pattern('|corange'), "|cffff9d00")
+			:gsub(ci_pattern('|cpink'), "|cfff64c97")
+			:gsub(ci_pattern('|cpurple'), "|cffdc44eb")
+			:gsub(ci_pattern('{star}'), "{rt1}")
+			:gsub(ci_pattern('{circle}'), "{rt2}")
+			:gsub(ci_pattern('{diamond}'), "{rt3}")
+			:gsub(ci_pattern('{triangle}'), "{rt4}")
+			:gsub(ci_pattern('{moon}'), "{rt5}")
+			:gsub(ci_pattern('{square}'), "{rt6}")
+			:gsub(ci_pattern('{cross}'), "{rt7}")
+			:gsub(ci_pattern('{x}'), "{rt7}")
+			:gsub(ci_pattern('{skull}'), "{rt8}")
+			:gsub(ci_pattern('{healthstone}'), "{hs}")
+			:gsub(ci_pattern('{hs}'), 'Healthstones')
+			:gsub(ci_pattern('{bl}'), 'Bloodlust')
+			:gsub(ci_pattern('{icon%s+([%w_]+)}'), '')
+			:gsub(ci_pattern('{damage}'), 'Damage')
+			:gsub(ci_pattern('{tank}'), 'Tanks')
+			:gsub(ci_pattern('{healer}'), 'Healers')
+			:gsub(ci_pattern('{dps}'), 'DPS')
+			:gsub(ci_pattern('{hero}'), "{heroism}")
+			:gsub(ci_pattern('{heroism}'), 'Heroism')
 		
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
