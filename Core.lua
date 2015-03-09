@@ -605,6 +605,7 @@ local function AngryAssign_TextChanged(widget, event, value)
 	AngryAssign.window.button_revert:SetDisabled(false)
 	AngryAssign.window.button_restore:SetDisabled(false)
 	AngryAssign.window.button_display:SetDisabled(true)
+	AngryAssign.window.button_output:SetDisabled(true)
 end
 
 local function AngryAssign_TextEntered(widget, event, value)
@@ -672,6 +673,16 @@ function AngryAssign:CreateWindow()
 	button_display:SetCallback("OnClick", AngryAssign_DisplayPage)
 	tree:AddChild(button_display)
 	window.button_display = button_display
+	
+	local button_output = AceGUI:Create("Button")
+	button_output:SetText("Output to Chat")
+	button_output:SetWidth(120)
+	button_output:SetHeight(22)
+	button_output:ClearAllPoints()
+	button_output:SetPoint("BOTTOMRIGHT", button_display.frame, "BOTTOMLEFT", -5, 0)
+	button_output:SetCallback("OnClick", AngryAssign_OutputDisplayed)
+	tree:AddChild(button_output)
+	window.button_output = button_output
 
 	local button_revert = AceGUI:Create("Button")
 	button_revert:SetText("Revert")
@@ -734,16 +745,6 @@ function AngryAssign:CreateWindow()
 	button_clear:SetCallback("OnClick", AngryAssign_ClearPage)
 	window:AddChild(button_clear)
 	window.button_clear = button_clear
-	
-	local button_output = AceGUI:Create("Button")
-	button_output:SetText("Output")
-	button_output:SetWidth(80)
-	button_output:SetHeight(19)
-	button_output:ClearAllPoints()
-	button_output:SetPoint("BOTTOMRIGHT", button_clear.frame, "BOTTOMLEFT", -5, 0)
-	button_output:SetCallback("OnClick", AngryAssign_OutputDisplayed)
-	window:AddChild(button_output)
-	window.button_output = button_output
 
 	self:UpdateSelected(true)
 	
@@ -935,12 +936,14 @@ function AngryAssign:UpdateSelected(destructive)
 		self.window.button_rename:SetDisabled(false)
 		self.window.button_revert:SetDisabled(not self.window.text.button:IsEnabled())
 		self.window.button_display:SetDisabled(self.window.text.button:IsEnabled())
+		self.window.button_output:SetDisabled(self.window.text.button:IsEnabled())
 		self.window.button_restore:SetDisabled(not self.window.text.button:IsEnabled() and page.Backup == page.Contents)
 		self.window.text:SetDisabled(false)
 	else
 		self.window.button_rename:SetDisabled(true)
 		self.window.button_revert:SetDisabled(true)
 		self.window.button_display:SetDisabled(true)
+		self.window.button_output:SetDisabled(true)
 		self.window.button_restore:SetDisabled(true)
 		self.window.text:SetDisabled(true)
 	end
@@ -952,11 +955,9 @@ function AngryAssign:UpdateSelected(destructive)
 	if permission then
 		self.window.button_add:SetDisabled(false)
 		self.window.button_clear:SetDisabled(false)
-		self.window.button_output:SetDisabled(false)
 	else
 		self.window.button_add:SetDisabled(true)
 		self.window.button_clear:SetDisabled(true)
-		self.window.button_output:SetDisabled(true)
 	end
 end
 
@@ -1564,13 +1565,14 @@ function AngryAssign:UpdateDisplayed()
 end
 
 function AngryAssign_OutputDisplayed()
-	return AngryAssign:OutputDisplayed()
+	return AngryAssign:OutputDisplayed( AngryAssign:SelectedId() )
 end
-function AngryAssign:OutputDisplayed()
+function AngryAssign:OutputDisplayed(id)
 	if not self:PermissionCheck() then
 		self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to output a page.|r" )
 	end
-	local page = AngryAssign_Pages[ AngryAssign_State.displayed ]
+	if not id then id = AngryAssign_State.displayed end
+	local page = AngryAssign_Pages[ id ]
 	local channel
 	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
 		channel = "INSTANCE_CHAT"
