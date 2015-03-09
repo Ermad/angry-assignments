@@ -3,6 +3,7 @@
 * Update ToC for 6.1
 * Added some text substitutions for chat output (courtesy of Timmeh)
 * Added text substitutions {spell #}, {boss #}, and {journal #} (courtesy of Timmeh)
+* Added text substitutions for class icons, ex: {shaman}
 
 ## v1.5.3
 
