@@ -633,7 +633,7 @@ function AngryAssign:CreateWindow()
 	AngryAssign.window = window
 
 	AngryAssign_Window = window.frame
-	window.frame:SetMinResize(600, 300)
+	window.frame:SetMinResize(700, 400)
 	window.frame:SetFrameStrata("HIGH")
 	window.frame:SetFrameLevel(1)
 	tinsert(UISpecialFrames, "AngryAssign_Window")
@@ -676,7 +676,7 @@ function AngryAssign:CreateWindow()
 	
 	local button_output = AceGUI:Create("Button")
 	button_output:SetText("Output to Chat")
-	button_output:SetWidth(120)
+	button_output:SetWidth(130)
 	button_output:SetHeight(22)
 	button_output:ClearAllPoints()
 	button_output:SetPoint("BOTTOMRIGHT", button_display.frame, "BOTTOMLEFT", -5, 0)
