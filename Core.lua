@@ -1416,7 +1416,8 @@ function AngryAssign:DisplayUpdateNotification()
 		-- Flashing in
 		local fade1 = updateFlasher:CreateAnimation("Alpha")
 		fade1:SetDuration(0.5)
-		fade1:SetChange(1)
+		fade1:SetFromAlpha(0)
+		fade1:SetToAlpha(1)
 		fade1:SetOrder(1)
 
 		-- Holding it visible for 1 second
@@ -1425,7 +1426,8 @@ function AngryAssign:DisplayUpdateNotification()
 		-- Flashing out
 		local fade2 = updateFlasher:CreateAnimation("Alpha")
 		fade2:SetDuration(0.5)
-		fade2:SetChange(-1)
+		fade2:SetFromAlpha(1)
+		fade2:SetToAlpha(0)
 		fade2:SetOrder(3)
 	end
 	if updateFlasher2 == nil then
@@ -1434,7 +1436,8 @@ function AngryAssign:DisplayUpdateNotification()
 		-- Flashing in
 		local fade1 = updateFlasher2:CreateAnimation("Alpha")
 		fade1:SetDuration(0.5)
-		fade1:SetChange(1)
+		fade1:SetFromAlpha(0)
+		fade1:SetToAlpha(1)
 		fade1:SetOrder(1)
 
 		-- Holding it visible for 1 second
@@ -1443,7 +1446,8 @@ function AngryAssign:DisplayUpdateNotification()
 		-- Flashing out
 		local fade2 = updateFlasher2:CreateAnimation("Alpha")
 		fade2:SetDuration(0.5)
-		fade2:SetChange(-1)
+		fade2:SetFromAlpha(1)
+		fade2:SetToAlpha(0)
 		fade2:SetOrder(3)
 	end
 
