@@ -1391,7 +1391,7 @@ function AngryAssign:UpdateBackdrop()
 	end
 	if min ~= nil and max ~= nil and self:GetConfig('backdropShow') then
 		self.backdrop:SetHeight( max - min + last_height + 8 )
-		self.backdrop:SetTexture( HexToRGB(self:GetConfig('backdropColor')) )
+		self.backdrop:SetTextureColor( HexToRGB(self:GetConfig('backdropColor')) )
 		self.backdrop:Show()
 	else
 		self.backdrop:Hide()
