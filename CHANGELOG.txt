@@ -1,3 +1,7 @@
+## v1.7
+
+* Updates for 7.0 (Legion) API changes
+
 ## v1.6.1
 
 * Updated ToC for 6.2
