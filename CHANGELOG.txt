@@ -1,3 +1,7 @@
+## v1.8.0
+
+* Added shortcuts for class color escape sequences, ex: |cdruid or |cshaman (courtesy of brrnt)
+
 ## v1.7.1
 
 * Fixed bug with backdrops
