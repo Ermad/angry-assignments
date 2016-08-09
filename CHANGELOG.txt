@@ -2,6 +2,7 @@
 
 * Added shortcuts for class color escape sequences, ex: |cdruid or |cshaman (courtesy of brrnt)
 * Added the ability to use a spell id for {icon ...} substitutions, ex: {icon 774} instead of {icon spell_nature_rejuvenation} (courtesy of bonermobile)
+* Added configuration option to adjust line spacing in assignment display
 
 ## v1.7.1
 

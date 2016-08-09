@@ -1405,6 +1405,7 @@ function AngryAssign:UpdateMedia()
 	
 	self.display_text:SetTextColor( HexToRGB(self:GetConfig('color')) )
 	self.display_text:SetFont(fontName, fontHeight, fontFlags)
+	self.display_text:SetSpacing( AngryAssign:GetConfig('lineSpacing') )
 	self:UpdateBackdrop()
 end
 
@@ -1693,6 +1694,7 @@ local configDefaults = {
 	highlightColor = "ffd200",
 	color = "ffffff",
 	allowall = false,
+	lineSpacing = 0,
 	allowplayers = "",
 	backdropShow = false,
 	backdropColor = "00000080",
@@ -2029,7 +2031,24 @@ function AngryAssign:OnInitialize()
 							self:SetConfig('highlightColor', RGBToHex(r, g, b))
 							self:UpdateDisplayed()
 						end
-					}
+					},
+					linespacing = {
+						type = "range",
+						order = 6,
+						name = "Line Spacing",
+						desc = function()
+							return "Sets the line spacing used to display a page"
+						end,
+						min = 0,
+						max = 10,
+						step = 1,
+						get = function(info) return self:GetConfig('lineSpacing') end,
+						set = function(info, val)
+							self:SetConfig('lineSpacing', val)
+							self:UpdateMedia()
+							self:UpdateDisplayed()
+						end
+					},
 				}
 			},
 			permissions = { 
