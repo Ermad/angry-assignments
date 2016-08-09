@@ -565,17 +565,95 @@ local function AngryAssign_DeletePage(pageId)
 	StaticPopup_Show(popup_name)
 end
 
+local function AngryAssign_AddCategory(widget, event, value)
+	local popup_name = "AngryAssign_AddCategory"
+	if StaticPopupDialogs[popup_name] == nil then
+		StaticPopupDialogs[popup_name] = {
+			button1 = OKAY,
+			button2 = CANCEL,
+			OnAccept = function(self)
+				local text = self.editBox:GetText()
+				if text ~= "" then AngryAssign:CreateCategory(text) end
+			end,
+			EditBoxOnEnterPressed = function(self)
+				local text = self:GetParent().editBox:GetText()
+				if text ~= "" then AngryAssign:CreateCategory(text) end
+				self:GetParent():Hide()
+			end,
+			text = "New category name:",
+			hasEditBox = true,
+			whileDead = true,
+			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+			hideOnEscape = true,
+			preferredIndex = 3
+		}
+	end
+	StaticPopup_Show(popup_name)
+end
+
+local function AngryAssign_RenameCategory(catId)
+	local cat = AngryAssign:GetCat(catId)
+	if not cat then return end
+
+	local popup_name = "AngryAssign_RenameCategory_"..cat.Id
+	if StaticPopupDialogs[popup_name] == nil then
+		StaticPopupDialogs[popup_name] = {
+			button1 = OKAY,
+			button2 = CANCEL,
+			OnAccept = function(self)
+				local text = self.editBox:GetText()
+				AngryAssign:RenameCategory(cat.Id, text)
+			end,
+			EditBoxOnEnterPressed = function(self)
+				local text = self:GetParent().editBox:GetText()
+				AngryAssign:RenameCategory(cat.Id, text)
+				self:GetParent():Hide()
+			end,
+			OnShow = function(self)
+				self.editBox:SetText(cat.Name)
+			end,
+			whileDead = true,
+			hasEditBox = true,
+			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+			hideOnEscape = true,
+			preferredIndex = 3
+		}
+	end
+	StaticPopupDialogs[popup_name].text = 'Rename category "'.. cat.Name ..'" to:'
+
+	StaticPopup_Show(popup_name)
+end
+
+local function AngryAssign_DeleteCategory(catId)
+	local cat = AngryAssign:GetCat(catId)
+	if not cat then return end
+
+	local popup_name = "AngryAssign_DeleteCategory_"..cat.Id
+	if StaticPopupDialogs[popup_name] == nil then
+		StaticPopupDialogs[popup_name] = {
+			button1 = OKAY,
+			button2 = CANCEL,
+			OnAccept = function(self)
+				AngryAssign:DeleteCategory(cat.Id)
+			end,
+			whileDead = true,
+			hideOnEscape = true,
+			preferredIndex = 3
+		}
+	end
+	StaticPopupDialogs[popup_name].text = 'Are you sure you want to delete category "'.. cat.Name ..'"?'
+
+	StaticPopup_Show(popup_name)
+end
+
 local function AngryAssign_AssignCategory(frame, pageId, catId)
 	local page = AngryAssign_Pages[pageId]
 	local cat = AngryAssign_Categories[catId]
 	if not page or not cat then return end
-
-	for _, c in pairs(AngryAssign_Categories) do
-		tDeleteItem(c.Children, page.Id)
-	end
-	table.insert(cat.Children, page.Id)
 	
-	AngryAssign:UpdateTree()
+	HideDropDownMenu(1)
+
+	AngryAssign:AssignCategory(page.Id, cat.Id)
 end
 
 local function AngryAssign_RevertPage(widget, event, value)
@@ -645,10 +723,9 @@ local function AngryAssign_RestorePage(widget, event, value)
 end
 
 local PagesDropDownList
-local PagesDropDown
-local function AngryAssign_MenuList(pageId)
-    local page = AngryAssign_Pages[pageId]
-    if not page then return end
+local function AngryAssign_PageMenu(pageId)
+	local page = AngryAssign_Pages[pageId]
+	if not page then return end
 
 	if not PagesDropDownList then
 		PagesDropDownList = {
@@ -657,10 +734,15 @@ local function AngryAssign_MenuList(pageId)
 			{ text = "Delete", notCheckable = true, func = function(frame, pageId) AngryAssign_DeletePage(pageId) end },
 			{ text = "Category", notCheckable = true, hasArrow = true },
 		}
-    end
+	end
+
+	local permission = AngryAssign:PermissionCheck()
+
 	PagesDropDownList[1].text = page.Name
 	PagesDropDownList[2].arg1 = pageId
+	PagesDropDownList[2].disabled = not permission
 	PagesDropDownList[3].arg1 = pageId
+	PagesDropDownList[3].disabled = not permission
 
 	local categories = {}
 	for _, cat in pairs(AngryAssign_Categories) do
@@ -672,20 +754,49 @@ local function AngryAssign_MenuList(pageId)
 	return PagesDropDownList
 end
 
+local CategoriesDropDownList
+local function AngryAssign_CategoryMenu(catId)
+	local cat = AngryAssign_Categories[catId]
+	if not cat then return end
+
+	if not CategoriesDropDownList then
+		CategoriesDropDownList = {
+			{ notCheckable = true, isTitle = true },
+			{ text = "Rename", notCheckable = true, func = function(frame, pageId) AngryAssign_RenameCategory(pageId) end },
+			{ text = "Delete", notCheckable = true, func = function(frame, pageId) AngryAssign_DeleteCategory(pageId) end },
+		}
+	end
+	CategoriesDropDownList[1].text = cat.Name
+	CategoriesDropDownList[2].arg1 = catId
+	CategoriesDropDownList[3].arg1 = catId
+
+	return CategoriesDropDownList
+end
+
+local AngryAssign_DropDown
 local function AngryAssign_TreeClick(widget, event, value, selected, button)
+	HideDropDownMenu(1)
 	local selectedId = selectedLastValue(value)
 	if selectedId < 0 then
-		local status = (widget.status or widget.localstatus).groups
-		status[value] = not status[value]
-		widget:RefreshTree()
+		if button == "RightButton" then
+			if not AngryAssign_DropDown then
+				AngryAssign_DropDown = CreateFrame("Frame", "AngryAssignMenuFrame", UIParent, "UIDropDownMenuTemplate")
+			end
+			EasyMenu(AngryAssign_CategoryMenu(-selectedId), AngryAssign_DropDown, "cursor", 0 , 0, "MENU")
+
+		else
+			local status = (widget.status or widget.localstatus).groups
+			status[value] = not status[value]
+			widget:RefreshTree()
+		end
 		return false
 	else
 		if button == "RightButton" then
-			if not PagesDropDown then
-				PagesDropDown = CreateFrame("Frame", "AngryAssignMenuFrame", UIParent, "UIDropDownMenuTemplate")
+			if not AngryAssign_DropDown then
+				AngryAssign_DropDown = CreateFrame("Frame", "AngryAssignMenuFrame", UIParent, "UIDropDownMenuTemplate")
 			end
+			EasyMenu(AngryAssign_PageMenu(selectedId), AngryAssign_DropDown, "cursor", 0 , 0, "MENU")
 
-			EasyMenu(AngryAssign_MenuList(selectedId), PagesDropDown, "cursor", 0 , 0, "MENU")
 			return false
 		end
 	end
@@ -805,6 +916,16 @@ function AngryAssign:CreateWindow()
 	button_delete:SetCallback("OnClick", function() AngryAssign_DeletePage() end)
 	window:AddChild(button_delete)
 	window.button_delete = button_delete
+
+	local button_add_cat = AceGUI:Create("Button")
+	button_add_cat:SetText("Add Category")
+	button_add_cat:SetWidth(120)
+	button_add_cat:SetHeight(19)
+	button_add_cat:ClearAllPoints()
+	button_add_cat:SetPoint("BOTTOMLEFT", button_delete.frame, "BOTTOMRIGHT", 5, 0)
+	button_add_cat:SetCallback("OnClick", function() AngryAssign_AddCategory() end)
+	window:AddChild(button_add_cat)
+	window.button_add_cat = button_add_cat
 
 	local button_clear = AceGUI:Create("Button")
 	button_clear:SetText("Clear")
@@ -1060,6 +1181,10 @@ function AngryAssign:Get(id)
 	return AngryAssign_Pages[id]
 end
 
+function AngryAssign:GetCat(id)
+	return AngryAssign_Categories[id]
+end
+
 function AngryAssign:Hash(name, contents)
 	local code = libC:fcs32init()
 	code = libC:fcs32update(code, name)
@@ -1070,7 +1195,7 @@ end
 
 function AngryAssign:CreatePage(name)
 	if not self:PermissionCheck() then return end
-	local id = math.random(2000000000)
+	local id = self:Hash("page", math.random(2000000000))
 
 	AngryAssign_Pages[id] = { Id = id, Updated = time(), UpdateId = self:Hash(name, ""), Name = name, Contents = "" }
 	self:UpdateTree(id)
@@ -1111,6 +1236,64 @@ function AngryAssign:TouchPage(id)
 	if not page then return end
 
 	page.Updated = time()
+end
+
+function AngryAssign:CreateCategory(name)
+	local id = self:Hash("cat", math.random(2000000000))
+
+	AngryAssign_Categories[id] = { Id = id, Name = name, Children = {} }
+	self:UpdateTree()
+end
+
+function AngryAssign:RenameCategory(id, name)
+	local cat = self:GetCat(id)
+	if not cat then return end
+
+	cat.Name = name
+
+	self:UpdateTree()
+end
+
+function AngryAssign:DeleteCategory(id)
+	local cat = self:GetCat(id)
+	if not cat then return end
+
+	local selectedId = self:SelectedId()
+	local wasChild = tContains(cat.Children, selectedId)
+
+	AngryAssign_Categories[id] = nil
+
+	self:UpdateTree()
+	if wasChild then
+		self.window.tree:SelectByValue(selectedId)
+	end
+end
+
+function AngryAssign:AssignCategory(pageId, catId)
+	local page = self:Get(pageId)
+	local cat = self:GetCat(catId)
+	if not page or not cat then return end
+
+	local parentId
+	if tContains(cat.Children, page.Id) then -- Already in that category, so unassign
+		tDeleteItem(cat.Children, page.Id)
+	else
+		for _, c in pairs(AngryAssign_Categories) do
+			tDeleteItem(c.Children, page.Id)
+		end
+		table.insert(cat.Children, page.Id)
+		parentId = cat.Id
+	end
+	
+	local selectedId = self:SelectedId()
+	self:UpdateTree()
+	if selectedId == page.Id then
+		if parentId then
+			self.window.tree:SelectByPath(-parentId, selectedId)
+		else
+			self.window.tree:SelectByValue(selectedId)
+		end
+	end
 end
 
 function AngryAssign:UpdateContents(id, value)
@@ -1824,10 +2007,7 @@ function AngryAssign:OnInitialize()
 		AngryAssign_Config.highlightColorB = nil
 	end
 	if AngryAssign_Categories == nil then
-		AngryAssign_Categories = {
- 			[1231] = { Id = 1231, Name = "Emerald Nightmare", Children = { 1046828700, 1083600514 }  },
- 			[1232] = { Id = 1232, Name = "Nighthold", Children = { 1462370922 }  },
-		}
+		AngryAssign_Categories = { }
 	end
 
 	local ver = AngryAssign_Version
