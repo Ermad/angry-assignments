@@ -43,6 +43,10 @@ local currentGroup = nil
 -- 		[Id] = { Id = "1231", Updated = time(), UpdateId = self:Hash(name, contents), Name = "Name", Contents = "...", Backup = "..." },
 --		...
 -- 	}
+-- 	AngryAssign_Categories = {
+-- 		[Id] = { Id = "1231", Name = "Name", Children = { 123, ... }  },
+--		...
+-- 	}
 --
 -- Format for our addon communication
 --
@@ -83,6 +87,11 @@ local VERSION_ValidRaid = 4
 -----------------------
 -- Utility Functions --
 -----------------------
+
+local function selectedLastValue(input)
+	local a, b = strsplit("", input, 2)
+	return tonumber(b) or tonumber(a)
+end
 
 local _player_realm = nil
 local function EnsureUnitFullName(unit)
@@ -501,8 +510,8 @@ local function AngryAssign_AddPage(widget, event, value)
 	StaticPopup_Show(popup_name)
 end
 
-local function AngryAssign_RenamePage(widget, event, value)
-	local page = AngryAssign:Get()
+local function AngryAssign_RenamePage(pageId)
+	local page = AngryAssign:Get(pageId)
 	if not page then return end
 
 	local popup_name = "AngryAssign_RenamePage_"..page.Id
@@ -534,8 +543,8 @@ local function AngryAssign_RenamePage(widget, event, value)
 	StaticPopup_Show(popup_name)
 end
 
-local function AngryAssign_DeletePage(widget, event, value)
-	local page = AngryAssign:Get()
+local function AngryAssign_DeletePage(pageId)
+	local page = AngryAssign:Get(pageId)
 	if not page then return end
 
 	local popup_name = "AngryAssign_DeletePage_"..page.Id
@@ -554,6 +563,19 @@ local function AngryAssign_DeletePage(widget, event, value)
 	StaticPopupDialogs[popup_name].text = 'Are you sure you want to delete page "'.. page.Name ..'"?'
 
 	StaticPopup_Show(popup_name)
+end
+
+local function AngryAssign_AssignCategory(frame, pageId, catId)
+	local page = AngryAssign_Pages[pageId]
+	local cat = AngryAssign_Categories[catId]
+	if not page or not cat then return end
+
+	for _, c in pairs(AngryAssign_Categories) do
+		tDeleteItem(c.Children, page.Id)
+	end
+	table.insert(cat.Children, page.Id)
+	
+	AngryAssign:UpdateTree()
 end
 
 local function AngryAssign_RevertPage(widget, event, value)
@@ -622,6 +644,53 @@ local function AngryAssign_RestorePage(widget, event, value)
 	AngryAssign_TextChanged(widget, event, value)
 end
 
+local PagesDropDownList
+local PagesDropDown
+local function AngryAssign_MenuList(pageId)
+    local page = AngryAssign_Pages[pageId]
+    if not page then return end
+
+	if not PagesDropDownList then
+		PagesDropDownList = {
+			{ notCheckable = true, isTitle = true },
+			{ text = "Rename", notCheckable = true, func = function(frame, pageId) AngryAssign_RenamePage(pageId) end },
+			{ text = "Delete", notCheckable = true, func = function(frame, pageId) AngryAssign_DeletePage(pageId) end },
+			{ text = "Category", notCheckable = true, hasArrow = true },
+		}
+    end
+	PagesDropDownList[1].text = page.Name
+	PagesDropDownList[2].arg1 = pageId
+	PagesDropDownList[3].arg1 = pageId
+
+	local categories = {}
+	for _, cat in pairs(AngryAssign_Categories) do
+		table.insert(categories, { text = cat.Name, value = cat.Id, checked = tContains(cat.Children, pageId), func = AngryAssign_AssignCategory, arg1 = pageId, arg2 = cat.Id })
+	end
+	table.sort(categories, function(a,b) return a.text < b.text end)
+	PagesDropDownList[4].menuList = categories
+
+	return PagesDropDownList
+end
+
+local function AngryAssign_TreeClick(widget, event, value, selected, button)
+	local selectedId = selectedLastValue(value)
+	if selectedId < 0 then
+		local status = (widget.status or widget.localstatus).groups
+		status[value] = not status[value]
+		widget:RefreshTree()
+		return false
+	else
+		if button == "RightButton" then
+			if not PagesDropDown then
+				PagesDropDown = CreateFrame("Frame", "AngryAssignMenuFrame", UIParent, "UIDropDownMenuTemplate")
+			end
+
+			EasyMenu(AngryAssign_MenuList(selectedId), PagesDropDown, "cursor", 0 , 0, "MENU")
+			return false
+		end
+	end
+end
+
 function AngryAssign:CreateWindow()
 	local window = AceGUI:Create("Frame")
 	window:SetTitle("Angry Assignments")
@@ -638,7 +707,7 @@ function AngryAssign:CreateWindow()
 	window.frame:SetFrameLevel(1)
 	tinsert(UISpecialFrames, "AngryAssign_Window")
 
-	local tree = AceGUI:Create("TreeGroup")
+	local tree = AceGUI:Create("AngryTreeGroup")
 	tree:SetTree( self:GetTree() )
 	tree:SelectByValue(1)
 	tree:SetStatusTable(AngryAssign_State.tree)
@@ -646,6 +715,7 @@ function AngryAssign:CreateWindow()
 	tree:SetFullHeight(true)
 	tree:SetLayout("Flow")
 	tree:SetCallback("OnGroupSelected", function(widget, event, value) AngryAssign:UpdateSelected(true) end)
+	tree:SetCallback("OnClick", AngryAssign_TreeClick)
 	window:AddChild(tree)
 	window.tree = tree
 
@@ -722,7 +792,7 @@ function AngryAssign:CreateWindow()
 	button_rename:SetHeight(19)
 	button_rename:ClearAllPoints()
 	button_rename:SetPoint("BOTTOMLEFT", button_add.frame, "BOTTOMRIGHT", 5, 0)
-	button_rename:SetCallback("OnClick", AngryAssign_RenamePage)
+	button_rename:SetCallback("OnClick", function() AngryAssign_RenamePage() end)
 	window:AddChild(button_rename)
 	window.button_rename = button_rename
 
@@ -732,7 +802,7 @@ function AngryAssign:CreateWindow()
 	button_delete:SetHeight(19)
 	button_delete:ClearAllPoints()
 	button_delete:SetPoint("BOTTOMLEFT", button_rename.frame, "BOTTOMRIGHT", 5, 0)
-	button_delete:SetCallback("OnClick", AngryAssign_DeletePage)
+	button_delete:SetCallback("OnClick", function() AngryAssign_DeletePage() end)
 	window:AddChild(button_delete)
 	window.button_delete = button_delete
 
@@ -892,24 +962,40 @@ end
 
 function AngryAssign:GetTree()
 
-	local sortTable = {}
-	for _, page in pairs(AngryAssign_Pages) do
-		tinsert(sortTable, { Id = page.Id, Name = page.Name })
+	local pagesInCategories = {}
+	local tree = {}
+
+	for _, cat in pairs(AngryAssign_Categories) do
+		local children = {}
+		for _, pageId in ipairs(cat.Children) do
+			local page = AngryAssign_Pages[pageId]
+			if page then
+				table.insert(pagesInCategories, page.Id)
+				if page.Id == AngryAssign_State.displayed then
+					table.insert(children, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
+				else
+					table.insert(children, { value = page.Id, text = page.Name })
+				end
+			end
+		end
+		table.sort(children, function(a,b) return a.text < b.text end)
+
+		table.insert(tree, { value = -cat.Id, text = cat.Name, children = children })
 	end
 
-	table.sort( sortTable, function(a,b) return a.Name < b.Name end)
-
-
-	local ret = {}
-	for _, page in ipairs(sortTable) do
-		if page.Id == AngryAssign_State.displayed then
-			tinsert(ret, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
-		else
-			tinsert(ret, { value = page.Id, text = page.Name })
+	for _, page in pairs(AngryAssign_Pages) do
+		if not tContains(pagesInCategories, page.Id) then
+			if page.Id == AngryAssign_State.displayed then
+				table.insert(tree, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
+			else
+				table.insert(tree, { value = page.Id, text = page.Name })
+			end
 		end
 	end
 
-	return ret
+	table.sort(tree, function(a,b) return a.text < b.text end)
+
+	return tree
 end
 
 function AngryAssign:UpdateTree(id)
@@ -966,7 +1052,7 @@ end
 ----------------------------------
 
 function AngryAssign:SelectedId()
-	return AngryAssign_State.tree.selected
+	return selectedLastValue( AngryAssign_State.tree.selected )
 end
 
 function AngryAssign:Get(id)
@@ -1736,6 +1822,12 @@ function AngryAssign:OnInitialize()
 		AngryAssign_Config.highlightColorR = nil
 		AngryAssign_Config.highlightColorG = nil
 		AngryAssign_Config.highlightColorB = nil
+	end
+	if AngryAssign_Categories == nil then
+		AngryAssign_Categories = {
+ 			[1231] = { Id = 1231, Name = "Emerald Nightmare", Children = { 1046828700, 1083600514 }  },
+ 			[1232] = { Id = 1232, Name = "Nighthold", Children = { 1462370922 }  },
+		}
 	end
 
 	local ver = AngryAssign_Version

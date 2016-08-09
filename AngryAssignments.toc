@@ -2,7 +2,7 @@
 ## Title: Angry Assignments
 ## Author: Ermad
 ## Version: @project-version@
-## SavedVariables: AngryAssign_Pages,AngryAssign_State,AngryAssign_Config
+## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config
 ## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, LibCompress, LibWindow-1.1
 
 embeds.xml
