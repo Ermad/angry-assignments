@@ -1,5 +1,6 @@
 ## v1.8.0
 
+* Added categories to help organize assignments. They are local only, and can be assigned by right clicking in page list.
 * Added shortcuts for class color escape sequences, ex: |cdruid or |cshaman (courtesy of brrnt)
 * Added the ability to use a spell id for {icon ...} substitutions, ex: {icon 774} instead of {icon spell_nature_rejuvenation} (courtesy of bonermobile)
 * Added configuration option to adjust line spacing in assignment display
