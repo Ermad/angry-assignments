@@ -89,7 +89,7 @@ local VERSION_ValidRaid = 4
 -----------------------
 
 local function selectedLastValue(input)
-	local a, b = strsplit("", input, 2)
+	local a, b = strsplit("", input or "", 2)
 	return tonumber(b) or tonumber(a)
 end
 
