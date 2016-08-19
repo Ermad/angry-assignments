@@ -1091,7 +1091,7 @@ function AngryAssign:GetTree()
 		for _, pageId in ipairs(cat.Children) do
 			local page = AngryAssign_Pages[pageId]
 			if page then
-				table.insert(pagesInCategories, page.Id)
+				pagesInCategories[page.Id] = true
 				if page.Id == AngryAssign_State.displayed then
 					table.insert(children, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
 				else
@@ -1105,7 +1105,7 @@ function AngryAssign:GetTree()
 	end
 
 	for _, page in pairs(AngryAssign_Pages) do
-		if not tContains(pagesInCategories, page.Id) then
+		if not pagesInCategories[page.Id] then
 			if page.Id == AngryAssign_State.displayed then
 				table.insert(tree, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
 			else
@@ -1883,7 +1883,6 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('|corange'), "")
 			:gsub(ci_pattern('|cpink'), "")
 			:gsub(ci_pattern('|cpurple'), "")
-			:gsub(ci_pattern('|cpurple'), "")
 			:gsub(ci_pattern('|cdeathknight'), "")
 			:gsub(ci_pattern('|cdruid'), "")
 			:gsub(ci_pattern('|chunter'), "")
@@ -1936,6 +1935,7 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{druid}'), LOCALIZED_CLASS_NAMES_MALE["DRUID"])
 			:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
 			:gsub(ci_pattern('{shaman}'), LOCALIZED_CLASS_NAMES_MALE["SHAMAN"])
+			:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
 		
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
@@ -1997,12 +1997,6 @@ function AngryAssign:OnInitialize()
 	end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 	if AngryAssign_Config == nil then AngryAssign_Config = { } end
-	if not AngryAssign_Config.highlightColor and AngryAssign_Config.highlightColorR and AngryAssign_Config.highlightColorG and AngryAssign_Config.highlightColorB then
-		AngryAssign_Config.highlightColor = RGBToHex( AngryAssign_Config.highlightColorR, AngryAssign_Config.highlightColorG, AngryAssign_Config.highlightColorB )
-		AngryAssign_Config.highlightColorR = nil
-		AngryAssign_Config.highlightColorG = nil
-		AngryAssign_Config.highlightColorB = nil
-	end
 	if AngryAssign_Categories == nil then
 		AngryAssign_Categories = { }
 	end
@@ -2049,6 +2043,7 @@ function AngryAssign:OnInitialize()
 				func = function()
 					AngryAssign_State.displayed = nil
 					AngryAssign_Pages = {}
+					AngryAssign_Categories = {}
 					self:UpdateTree()
 					self:UpdateSelected()
 					self:UpdateDisplayed()
