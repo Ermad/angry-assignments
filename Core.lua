@@ -1298,7 +1298,7 @@ end
 function AngryAssign:CreateCategory(name)
 	local id = self:Hash("cat", math.random(2000000000))
 
-	AngryAssign_Categories[id] = { Id = id, Name = name, Children = {} }
+	AngryAssign_Categories[id] = { Id = id, Name = name }
 
 	if AngryAssign_State.tree.groups then
 		AngryAssign_State.tree.groups[ -id ] = true
