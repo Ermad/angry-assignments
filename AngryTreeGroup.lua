@@ -2,7 +2,7 @@
 TreeGroup Container
 Container that uses a tree control to switch between groups.
 -------------------------------------------------------------------------------]]
-local Type, Version = "AngryTreeGroup", 1
+local Type, Version = "AngryTreeGroup", 2
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -82,12 +82,8 @@ local function UpdateButton(button, treeline, selected, canExpand, isExpanded)
 	local line = button.line
 	button.level = level
 	if ( level == 1 ) then
-		button:SetNormalFontObject("GameFontNormal")
-		button:SetHighlightFontObject("GameFontHighlight")
 		button.text:SetPoint("LEFT", (icon and 16 or 0) + 8, 2)
 	else
-		button:SetNormalFontObject("GameFontHighlightSmall")
-		button:SetHighlightFontObject("GameFontHighlightSmall")
 		button.text:SetPoint("LEFT", (icon and 16 or 0) + 8 * level, 2)
 	end
 	
@@ -112,6 +108,14 @@ local function UpdateButton(button, treeline, selected, canExpand, isExpanded)
 		button.icon:SetTexCoord(0, 1, 0, 1)
 	end
 	
+	if canExpand or level == 1 then
+		button:SetNormalFontObject("GameFontNormal")
+		button:SetHighlightFontObject("GameFontHighlight")
+	else
+		button:SetNormalFontObject("GameFontHighlight")
+		button:SetHighlightFontObject("GameFontHighlight")
+	end
+
 	if canExpand then
 		if not isExpanded then
 			toggle:SetNormalTexture("Interface\\Buttons\\UI-PlusButton-UP")

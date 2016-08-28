@@ -1,3 +1,7 @@
+## v1.8.1
+
+* Added ability to set categories for other categories, so can have multi-layered categories.
+
 ## v1.8.0
 
 * Added categories to help organize assignments. They are local only, and can be assigned by right clicking on a page in the list.

@@ -40,11 +40,11 @@ local currentGroup = nil
 
 -- Pages Saved Variable Format 
 -- 	AngryAssign_Pages = {
--- 		[Id] = { Id = "1231", Updated = time(), UpdateId = self:Hash(name, contents), Name = "Name", Contents = "...", Backup = "..." },
+-- 		[Id] = { Id = 1231, Updated = time(), UpdateId = self:Hash(name, contents), Name = "Name", Contents = "...", Backup = "...", CategoryId = 123 },
 --		...
 -- 	}
 -- 	AngryAssign_Categories = {
--- 		[Id] = { Id = "1231", Name = "Name", Children = { 123, ... }  },
+-- 		[Id] = { Id = 1231, Name = "Name", CategoryId = 123 },
 --		...
 -- 	}
 --
@@ -89,8 +89,14 @@ local VERSION_ValidRaid = 4
 -----------------------
 
 local function selectedLastValue(input)
-	local a, b = strsplit("", input or "", 2)
-	return tonumber(b) or tonumber(a)
+	local a = select(-1, strsplit("", input or ""))
+	return tonumber(a)
+end
+
+local function tReverse(tbl)
+	for i=1, math.floor(#tbl / 2) do
+		tbl[i], tbl[#tbl - i + 1] = tbl[#tbl - i + 1], tbl[i]
+	end
 end
 
 local _player_realm = nil
@@ -646,14 +652,10 @@ local function AngryAssign_DeleteCategory(catId)
 	StaticPopup_Show(popup_name)
 end
 
-local function AngryAssign_AssignCategory(frame, pageId, catId)
-	local page = AngryAssign_Pages[pageId]
-	local cat = AngryAssign_Categories[catId]
-	if not page or not cat then return end
-	
+local function AngryAssign_AssignCategory(frame, entryId, catId)
 	HideDropDownMenu(1)
 
-	AngryAssign:AssignCategory(page.Id, cat.Id)
+	AngryAssign:AssignCategory(entryId, catId)
 end
 
 local function AngryAssign_RevertPage(widget, event, value)
@@ -722,8 +724,34 @@ local function AngryAssign_RestorePage(widget, event, value)
 	AngryAssign_TextChanged(widget, event, value)
 end
 
+local function AngryAssign_CategoryMenuList(entryId, parentId)
+	local categories = {}
+
+	local checkedId
+	if entryId > 0 then
+		local page = AngryAssign_Pages[entryId]
+		checkedId = page.CategoryId
+	else
+		local cat = AngryAssign_Categories[-entryId]
+		checkedId = cat.CategoryId
+	end
+
+	for _, cat in pairs(AngryAssign_Categories) do
+		if cat.Id ~= -entryId and (parentId or not cat.CategoryId) and (not parentId or cat.CategoryId == parentId) then 
+			local subMenu = AngryAssign_CategoryMenuList(entryId, cat.Id)
+			table.insert(categories, { text = cat.Name, value = cat.Id, menuList = subMenu, hasArrow = (subMenu ~= nil), checked = (checkedId == cat.Id), func = AngryAssign_AssignCategory, arg1 = entryId, arg2 = cat.Id })
+		end
+	end
+
+	table.sort(categories, function(a,b) return a.text < b.text end)
+
+	if #categories  > 0 then
+		return categories
+	end
+end
+
 local PagesDropDownList
-local function AngryAssign_PageMenu(pageId)
+function AngryAssign_PageMenu(pageId)
 	local page = AngryAssign_Pages[pageId]
 	if not page then return end
 
@@ -743,19 +771,13 @@ local function AngryAssign_PageMenu(pageId)
 	PagesDropDownList[2].disabled = not permission
 	PagesDropDownList[3].arg1 = pageId
 	PagesDropDownList[3].disabled = not permission
-
-	local categories = {}
-	for _, cat in pairs(AngryAssign_Categories) do
-		table.insert(categories, { text = cat.Name, value = cat.Id, checked = tContains(cat.Children, pageId), func = AngryAssign_AssignCategory, arg1 = pageId, arg2 = cat.Id })
-	end
-	table.sort(categories, function(a,b) return a.text < b.text end)
-	PagesDropDownList[4].menuList = categories
+	PagesDropDownList[4].menuList = AngryAssign_CategoryMenuList(pageId)
 
 	return PagesDropDownList
 end
 
 local CategoriesDropDownList
-local function AngryAssign_CategoryMenu(catId)
+function AngryAssign_CategoryMenu(catId)
 	local cat = AngryAssign_Categories[catId]
 	if not cat then return end
 
@@ -764,11 +786,13 @@ local function AngryAssign_CategoryMenu(catId)
 			{ notCheckable = true, isTitle = true },
 			{ text = "Rename", notCheckable = true, func = function(frame, pageId) AngryAssign_RenameCategory(pageId) end },
 			{ text = "Delete", notCheckable = true, func = function(frame, pageId) AngryAssign_DeleteCategory(pageId) end },
+			{ text = "Category", notCheckable = true, hasArrow = true },
 		}
 	end
 	CategoriesDropDownList[1].text = cat.Name
 	CategoriesDropDownList[2].arg1 = catId
 	CategoriesDropDownList[3].arg1 = catId
+	CategoriesDropDownList[4].menuList = AngryAssign_CategoryMenuList(-catId)
 
 	return CategoriesDropDownList
 end
@@ -1081,36 +1105,44 @@ function AngryAssign:SelectedUpdated(sender)
 	end
 end
 
-function AngryAssign:GetTree()
+local function GetTree_InsertPage(tree, page)
+	if page.Id == AngryAssign_State.displayed then
+		table.insert(tree, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
+	else
+		table.insert(tree, { value = page.Id, text = page.Name })
+	end
+end
 
-	local pagesInCategories = {}
+local function GetTree_InsertChildren(categoryId)
 	local tree = {}
-
 	for _, cat in pairs(AngryAssign_Categories) do
-		local children = {}
-		for _, pageId in ipairs(cat.Children) do
-			local page = AngryAssign_Pages[pageId]
-			if page then
-				pagesInCategories[page.Id] = true
-				if page.Id == AngryAssign_State.displayed then
-					table.insert(children, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
-				else
-					table.insert(children, { value = page.Id, text = page.Name })
-				end
-			end
+		if cat.CategoryId == categoryId then
+			table.insert(tree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id) })
 		end
-		table.sort(children, function(a,b) return a.text < b.text end)
-
-		table.insert(tree, { value = -cat.Id, text = cat.Name, children = children })
 	end
 
 	for _, page in pairs(AngryAssign_Pages) do
-		if not pagesInCategories[page.Id] then
-			if page.Id == AngryAssign_State.displayed then
-				table.insert(tree, { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" })
-			else
-				table.insert(tree, { value = page.Id, text = page.Name })
-			end
+		if page.CategoryId == categoryId then
+			GetTree_InsertPage(tree, page)
+		end
+	end
+
+	table.sort(tree, function(a,b) return a.text < b.text end)
+	return tree
+end
+
+function AngryAssign:GetTree()
+	local tree = {}
+
+	for _, cat in pairs(AngryAssign_Categories) do
+		if not cat.CategoryId then
+			table.insert(tree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id) })
+		end
+	end
+
+	for _, page in pairs(AngryAssign_Pages) do
+		if not page.CategoryId then
+			GetTree_InsertPage(tree, page)
 		end
 	end
 
@@ -1176,6 +1208,31 @@ function AngryAssign:SelectedId()
 	return selectedLastValue( AngryAssign_State.tree.selected )
 end
 
+function AngryAssign:SetSelectedId(selectedId)
+	local page = AngryAssign_Pages[selectedId]
+	if page then
+		if page.CategoryId then
+			local cat = AngryAssign_Categories[page.CategoryId]
+			local path = { }
+			while cat do
+				table.insert(path, -cat.Id)
+				if cat.CategoryId then
+					cat = AngryAssign_Categories[cat.CategoryId]
+				else 
+					cat = nil
+				end
+			end
+			tReverse(path)
+			table.insert(path, page.Id)
+			self.window.tree:SelectByPath(unpack(path))
+		else
+			self.window.tree:SelectByValue(page.Id)
+		end
+	else
+		self.window.tree:SelectByValue()
+	end
+end
+
 function AngryAssign:Get(id)
 	if id == nil then id = self:SelectedId() end
 	return AngryAssign_Pages[id]
@@ -1221,7 +1278,7 @@ end
 function AngryAssign:DeletePage(id)
 	AngryAssign_Pages[id] = nil
 	if self.window and self:SelectedId() == id then
-		self.window.tree:SetSelected(nil)
+		self:SetSelectedId(nil)
 		self:UpdateSelected(true)
 	end
 	if AngryAssign_State.displayed == id then
@@ -1259,40 +1316,43 @@ function AngryAssign:DeleteCategory(id)
 	if not cat then return end
 
 	local selectedId = self:SelectedId()
-	local wasChild = tContains(cat.Children, selectedId)
 
 	AngryAssign_Categories[id] = nil
 
 	self:UpdateTree()
-	if wasChild then
-		self.window.tree:SelectByValue(selectedId)
-	end
+	self:SetSelectedId(selectedId)
 end
 
-function AngryAssign:AssignCategory(pageId, catId)
-	local page = self:Get(pageId)
-	local cat = self:GetCat(catId)
-	if not page or not cat then return end
-
-	local parentId
-	if tContains(cat.Children, page.Id) then -- Already in that category, so unassign
-		tDeleteItem(cat.Children, page.Id)
+function AngryAssign:AssignCategory(entryId, parentId)
+	local page, cat
+	if entryId > 0 then
+		page = self:Get(entryId)
 	else
-		for _, c in pairs(AngryAssign_Categories) do
-			tDeleteItem(c.Children, page.Id)
-		end
-		table.insert(cat.Children, page.Id)
-		parentId = cat.Id
+		cat = self:GetCat(-entryId)
 	end
-	
+	local parent = self:GetCat(parentId)
+	if not (page or cat) or not parent then return end
+
+	if page then
+		if page.CategoryId == parentId then
+			page.CategoryId = nil
+		else
+			page.CategoryId = parentId
+		end
+	end
+
+	if cat then
+		if cat.CategoryId == parentId then
+			cat.CategoryId = nil
+		else
+			cat.CategoryId = parentId
+		end
+	end
+
 	local selectedId = self:SelectedId()
 	self:UpdateTree()
-	if selectedId == page.Id then
-		if parentId then
-			self.window.tree:SelectByPath(-parentId, selectedId)
-		else
-			self.window.tree:SelectByValue(selectedId)
-		end
+	if selectedId == entryId then
+		self:SetSelectedId( selectedId )
 	end
 end
 
@@ -1999,6 +2059,18 @@ function AngryAssign:OnInitialize()
 	if AngryAssign_Config == nil then AngryAssign_Config = { } end
 	if AngryAssign_Categories == nil then
 		AngryAssign_Categories = { }
+	else
+		for _, cat in pairs(AngryAssign_Categories) do
+			if cat.Children then
+				for _, pageId in ipairs(cat.Children) do
+					local page = AngryAssign_Pages[pageId]
+					if page then
+						page.CategoryId = cat.Id
+					end
+				end
+				cat.Children = nil
+			end
+		end
 	end
 
 	local ver = AngryAssign_Version
