@@ -1113,16 +1113,17 @@ local function GetTree_InsertPage(tree, page)
 	end
 end
 
-local function GetTree_InsertChildren(categoryId)
+local function GetTree_InsertChildren(categoryId, displayedPages)
 	local tree = {}
 	for _, cat in pairs(AngryAssign_Categories) do
 		if cat.CategoryId == categoryId then
-			table.insert(tree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id) })
+			table.insert(tree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id, displayedPages) })
 		end
 	end
 
 	for _, page in pairs(AngryAssign_Pages) do
 		if page.CategoryId == categoryId then
+			displayedPages[page.Id] = true
 			GetTree_InsertPage(tree, page)
 		end
 	end
@@ -1133,15 +1134,16 @@ end
 
 function AngryAssign:GetTree()
 	local tree = {}
+	local displayedPages = {}
 
 	for _, cat in pairs(AngryAssign_Categories) do
 		if not cat.CategoryId then
-			table.insert(tree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id) })
+			table.insert(tree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id, displayedPages) })
 		end
 	end
 
 	for _, page in pairs(AngryAssign_Pages) do
-		if not page.CategoryId or not AngryAssign_Categories[page.CategoryId] then
+		if not page.CategoryId or not displayedPages[page.Id] then
 			GetTree_InsertPage(tree, page)
 		end
 	end
@@ -1229,7 +1231,7 @@ function AngryAssign:SetSelectedId(selectedId)
 			self.window.tree:SelectByValue(page.Id)
 		end
 	else
-		self.window.tree:SelectByValue()
+		self.window.tree:SetSelected()
 	end
 end
 
