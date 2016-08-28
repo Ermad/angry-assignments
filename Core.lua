@@ -1141,7 +1141,7 @@ function AngryAssign:GetTree()
 	end
 
 	for _, page in pairs(AngryAssign_Pages) do
-		if not page.CategoryId then
+		if not page.CategoryId or not AngryAssign_Categories[page.CategoryId] then
 			GetTree_InsertPage(tree, page)
 		end
 	end
@@ -1299,6 +1299,10 @@ function AngryAssign:CreateCategory(name)
 	local id = self:Hash("cat", math.random(2000000000))
 
 	AngryAssign_Categories[id] = { Id = id, Name = name, Children = {} }
+
+	if AngryAssign_State.tree.groups then
+		AngryAssign_State.tree.groups[ -id ] = true
+	end
 	self:UpdateTree()
 end
 
@@ -1316,6 +1320,18 @@ function AngryAssign:DeleteCategory(id)
 	if not cat then return end
 
 	local selectedId = self:SelectedId()
+
+	for _, c in pairs(AngryAssign_Categories) do
+		if cat.Id == c.CategoryId then
+			c.CategoryId = cat.CategoryId
+		end
+	end
+
+	for _, p in pairs(AngryAssign_Pages) do
+		if cat.Id == p.CategoryId then
+			p.CategoryId = cat.CategoryId
+		end
+	end
 
 	AngryAssign_Categories[id] = nil
 
