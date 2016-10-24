@@ -777,7 +777,7 @@ function AngryAssign_PageMenu(pageId)
 end
 
 local CategoriesDropDownList
-function AngryAssign_CategoryMenu(catId)
+local function AngryAssign_CategoryMenu(catId)
 	local cat = AngryAssign_Categories[catId]
 	if not cat then return end
 
@@ -1157,7 +1157,7 @@ function AngryAssign:UpdateTree(id)
 	if not self.window then return end
 	self.window.tree:SetTree( self:GetTree() )
 	if id then
-		self.window.tree:SelectByValue( id )
+		self:SetSelectedId( id )
 	end
 end
 

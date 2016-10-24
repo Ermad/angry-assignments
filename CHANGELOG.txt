@@ -1,3 +1,7 @@
+## v1.8.3
+
+* ToC update for 7.1
+
 ## v1.8.2
 
 * Added ability to set categories for other categories, so can have multi-layered categories.
