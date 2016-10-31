@@ -1688,10 +1688,6 @@ function AngryAssign:UpdateDirection()
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0.5, 1)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0.5, 1)
 
-		self.backdrop:ClearAllPoints()
-		self.backdrop:SetPoint("BOTTOMLEFT", -4, -4)
-		self.backdrop:SetPoint("BOTTOMRIGHT", 4, -4)
-
 		self.display_glow:ClearAllPoints()
 		self.display_glow:SetPoint("BOTTOM", 0, -4)
 		self.display_glow:SetTexCoord(0.56054688, 0.99609375, 0.24218750, 0.46679688)
@@ -1704,10 +1700,6 @@ function AngryAssign:UpdateDirection()
 		self.display_text:SetInsertMode(SCROLLING_MESSAGE_FRAME_INSERT_MODE_TOP)
 		self.direction_button:GetNormalTexture():SetTexCoord(0, 0.5, 0, 0.5)
 		self.direction_button:GetPushedTexture():SetTexCoord(0.5, 1, 0, 0.5)
-
-		self.backdrop:ClearAllPoints()
-		self.backdrop:SetPoint("TOPLEFT", -4, 4)
-		self.backdrop:SetPoint("TOPRIGHT", 4, 4)
 
 		self.display_glow:ClearAllPoints()
 		self.display_glow:SetPoint("TOP", 0, 4)
@@ -1723,21 +1715,24 @@ function AngryAssign:UpdateDirection()
 end
 
 function AngryAssign:UpdateBackdrop()
-	local regions = { self.display_text:GetRegions() }
-
-	local min, max, last_height
-	for i, region in ipairs(regions) do
-		if region:GetObjectType() == "FontString" then
-			local position = region:GetBottom()
-			if min == nil or position < min then min = position end
-			if max == nil or position > max then
-				max = position
-				last_height = region:GetHeight()
-			end
+	local first, last
+	for lineIndex, visibleLine in ipairs(self.display_text.visibleLines) do
+		local messageInfo = self.display_text.historyBuffer:GetEntryAtIndex(lineIndex)
+		if messageInfo then
+			if not first then first = visibleLine end
+			last = visibleLine
 		end
 	end
-	if min ~= nil and max ~= nil and self:GetConfig('backdropShow') then
-		self.backdrop:SetHeight( max - min + last_height + 8 )
+
+	if first and last and self:GetConfig('backdropShow') then
+		self.backdrop:ClearAllPoints()
+		if AngryAssign_State.directionUp then
+			self.backdrop:SetPoint("TOPLEFT", last, "TOPLEFT", -4, 4)
+			self.backdrop:SetPoint("BOTTOMRIGHT", first, "BOTTOMRIGHT", 4, -4)
+		else
+			self.backdrop:SetPoint("TOPLEFT", first, "TOPLEFT", -4, 4)
+			self.backdrop:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", 4, -4)
+		end
 		self.backdrop:SetColorTexture( HexToRGB(self:GetConfig('backdropColor')) )
 		self.backdrop:Show()
 	else
