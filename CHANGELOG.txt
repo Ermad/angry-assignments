@@ -1,3 +1,7 @@
+## v1.8.6
+
+* Small bug fix for chat output.
+
 ## v1.8.5
 
 * Fix for displaying backdrop in 7.1
