@@ -1,3 +1,7 @@
+## v1.8.7
+
+* Added option to have edit box font use same font as display font
+
 ## v1.8.6
 
 * Small bug fix for chat output.
