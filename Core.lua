@@ -266,11 +266,19 @@ function AngryAssign:ProcessMessage(sender, data)
 	elseif cmd == "VERSION" then
 		local localTimestamp, ver, timestamp
 		
-		if AngryAssign_Timestamp:sub(1,1) == "@" then localTimestamp = nil else localTimestamp = tonumber(AngryAssign_Timestamp) end
+		if AngryAssign_Timestamp:sub(1,1) == "@" then localTimestamp = "dev" else localTimestamp = tonumber(AngryAssign_Timestamp) end
 		ver = data[VERSION_Version]
 		timestamp = data[VERSION_Timestamp]
+
+		local localStr = tostring(localTimestamp)
+		local remoteStr = tostring(timestamp)
+
+		if (localStr ~= "dev" and localStr:len() ~= 14) or (remoteStr ~= "dev" and remoteStr:len() ~= 14) then
+			if localStr ~= "dev" then localTimestamp = tonumber(localStr:sub(1,8)) end
+			if remoteStr ~= "dev" then timestamp = tonumber(remoteStr:sub(1,8)) end
+		end
 			
-		if localTimestamp ~= nil and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then 
+		if localTimestamp ~= "dev" and timestamp ~= "dev" and timestamp > localTimestamp and not warnedOOD then
 			self:Print("Your version of Angry Assignments is out of date! Download the latest version from curse.com.")
 			warnedOOD = true
 		end

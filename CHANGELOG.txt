@@ -1,3 +1,7 @@
+## v1.8.8
+
+* Fixed a bug with version checker sometimes incorrectly showing you have an old version
+
 ## v1.8.7
 
 * Added option to have edit box font use same font as display font
