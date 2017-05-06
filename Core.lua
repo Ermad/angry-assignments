@@ -32,7 +32,7 @@ local officerGuildRank = nil -- The lowest officer guild rank
 local warnedOOD = false
 local versionList = {}
 
-local comnStarted = false
+local comStarted = false
 
 local warnedPermission = false
 
@@ -1503,7 +1503,7 @@ end
 
 function AngryAssign:PermissionsUpdated()
 	self:UpdateSelected()
-	if comnStarted then
+	if comStarted then
 		self:SendRequestDisplay()
 	end
 	if (IsInRaid() or IsInGroup()) and not self:IsValidRaid() then
@@ -2545,7 +2545,7 @@ end
 
 function AngryAssign:AfterEnable()
 	self:RegisterComm(comPrefix, "ReceiveMessage")
-	comnStarted = true
+	comStarted = true
 
 	if not (IsInRaid() or IsInGroup()) then
 		self:ClearDisplayed()
