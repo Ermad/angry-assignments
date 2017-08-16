@@ -1,3 +1,7 @@
+** v1.8.11
+
+* New release to package updated lib files, should fix the issue some users were experiencing
+
 ## v1.8.10
 
 * Small bug fix
