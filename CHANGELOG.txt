@@ -1,4 +1,8 @@
-** v1.8.11
+## v1.8.12
+
+* Bug fix with method names conflicting with updated AceEvent
+
+## v1.8.11
 
 * New release to package updated lib files, should fix the issue some users were experiencing
 

@@ -162,7 +162,7 @@ function AngryAssign:ReceiveMessage(prefix, data, channel, sender)
 	self:ProcessMessage( sender, final )
 end
 
-function AngryAssign:SendMessage(data, channel, target)
+function AngryAssign:SendOutMessage(data, channel, target)
 	local one = libS:Serialize( data )
 	local two = libC:CompressHuffman(one)
 	local final = libCE:Encode(two)
@@ -322,7 +322,7 @@ function AngryAssign:SendPageMessage(id)
 	local page = AngryAssign_Pages[ id ]
 	if not page then error("Can't send page, does not exist"); return end
 	if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
-	self:SendMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents, [PAGE_UpdateId] = page.UpdateId })
+	self:SendOutMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents, [PAGE_UpdateId] = page.UpdateId })
 end
 
 function AngryAssign:SendDisplay(id, force)
@@ -350,17 +350,17 @@ function AngryAssign:SendDisplayMessage(id)
 	
 	local page = AngryAssign_Pages[ id ]
 	if not page then
-		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil }) 
+		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil }) 
 	else
 		if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
-		self:SendMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId }) 
+		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId }) 
 	end
 end
 
 function AngryAssign:SendRequestDisplay()
 	if (IsInRaid() or IsInGroup()) then
 		local to = self:GetRaidLeader(true)
-		if to then self:SendMessage({ "REQUEST_DISPLAY" }, "WHISPER", to) end
+		if to then self:SendOutMessage({ "REQUEST_DISPLAY" }, "WHISPER", to) end
 	end
 end
 
@@ -392,18 +392,18 @@ function AngryAssign:SendVersionMessage()
 	local verToSend
 	if AngryAssign_Version:sub(1,1) == "@" then verToSend = "dev" else verToSend = AngryAssign_Version end
 	if AngryAssign_Timestamp:sub(1,1) == "@" then timestampToSend = "dev" else timestampToSend = tonumber(AngryAssign_Timestamp) end
-	self:SendMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend, [VERSION_ValidRaid] = self:IsValidRaid() })
+	self:SendOutMessage({ "VERSION", [VERSION_Version] = verToSend, [VERSION_Timestamp] = timestampToSend, [VERSION_ValidRaid] = self:IsValidRaid() })
 end
 
 
 function AngryAssign:SendVerQuery()
-	self:SendMessage({ "VER_QUERY" })
+	self:SendOutMessage({ "VER_QUERY" })
 end
 
 function AngryAssign:SendRequestPage(id, to)
 	if (IsInRaid() or IsInGroup()) or to then
 		if not to then to = self:GetRaidLeader(true) end
-		if to then self:SendMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to) end
+		if to then self:SendOutMessage({ "REQUEST_PAGE", [REQUEST_PAGE_Id] = id }, "WHISPER", to) end
 	end
 end
 
@@ -2229,7 +2229,7 @@ function AngryAssign:OnInitialize()
 				func = function()
 					if (IsInRaid() or IsInGroup()) then
 						versionList = {} -- start with a fresh version list, when displaying it
-						self:SendMessage({ "VER_QUERY" }) 
+						self:SendOutMessage({ "VER_QUERY" }) 
 						self:ScheduleTimer("VersionCheckOutput", 3)
 						self:Print("Version check running...")
 					else
