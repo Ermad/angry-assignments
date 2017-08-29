@@ -1,3 +1,8 @@
+## v1.9.0
+
+* Update for 7.3
+* 7.3 removed the ability for an addon to check which ranks has access to officer chat, so this severly reduces the permissions default settings. Not a raid is only allowed by default if the raid leader is the guild leader. You can adjust your permission settings (either allow all, or manually enter a name) if thats not the case.
+
 ## v1.8.12
 
 * Bug fix with method names conflicting with updated AceEvent

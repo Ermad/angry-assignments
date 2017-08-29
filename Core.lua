@@ -1433,16 +1433,17 @@ end
 function AngryAssign:UpdateOfficerRank()
 	local currentGuildName = GetGuildInfo('player')
 	local newOfficerGuildRank = 0
-	if currentGuildName then
-		for i = 1, GuildControlGetNumRanks() do
-			GuildControlSetRank(i)
-			if select(4, GuildControlGetRankFlags()) ~= nil then
-				newOfficerGuildRank = i - 1
-			else
-				break
-			end
-		end
-	end
+	-- if currentGuildName then
+	-- 	for i = 1, GuildControlGetNumRanks() do
+	-- 		GuildControlSetRank(i)
+	-- 		if select(4, GuildControlGetRankFlags()) ~= nil then
+	-- 			newOfficerGuildRank = i - 1
+	-- 		else
+	-- 			break
+	-- 		end
+	-- 	end
+	-- end
+	newOfficerGuildRank = 1
 	if newOfficerGuildRank ~= officerGuildRank or currentGuildName ~= guildName then
 		officerGuildRank = newOfficerGuildRank
 		guildName = currentGuildName
