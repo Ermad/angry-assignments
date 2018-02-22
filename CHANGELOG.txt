@@ -1,3 +1,8 @@
+## v1.9.1
+
+* Add command "/aa clear" to clear currently displayed page
+* Bugfix for dropdown menu when no categories exist
+
 ## v1.9.0
 
 * Update for 7.3

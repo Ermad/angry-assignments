@@ -753,7 +753,7 @@ local function AngryAssign_CategoryMenuList(entryId, parentId)
 
 	table.sort(categories, function(a,b) return a.text < b.text end)
 
-	if #categories  > 0 then
+	if #categories > 0 then
 		return categories
 	end
 end
@@ -779,7 +779,15 @@ function AngryAssign_PageMenu(pageId)
 	PagesDropDownList[2].disabled = not permission
 	PagesDropDownList[3].arg1 = pageId
 	PagesDropDownList[3].disabled = not permission
-	PagesDropDownList[4].menuList = AngryAssign_CategoryMenuList(pageId)
+
+	local categories = AngryAssign_CategoryMenuList(pageId)
+	if categories ~= nil then
+		PagesDropDownList[4].menuList = categories
+		PagesDropDownList[4].disabled = false
+	else
+		PagesDropDownList[4].menuList = {}
+		PagesDropDownList[4].disabled = true
+	end
 
 	return PagesDropDownList
 end
@@ -800,7 +808,16 @@ local function AngryAssign_CategoryMenu(catId)
 	CategoriesDropDownList[1].text = cat.Name
 	CategoriesDropDownList[2].arg1 = catId
 	CategoriesDropDownList[3].arg1 = catId
-	CategoriesDropDownList[4].menuList = AngryAssign_CategoryMenuList(-catId)
+
+
+	local categories = AngryAssign_CategoryMenuList(-catId)
+	if categories ~= nil then
+		CategoriesDropDownList[4].menuList = categories
+		CategoriesDropDownList[4].disabled = false
+	else
+		CategoriesDropDownList[4].menuList = {}
+		CategoriesDropDownList[4].disabled = true
+	end
 
 	return CategoriesDropDownList
 end
@@ -2201,6 +2218,18 @@ function AngryAssign:OnInitialize()
 					elseif not result then 
 						self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to send a page.|r" )
 					end
+				end
+			},
+			clear = {
+				type = "execute",
+				name = "Clear",
+				desc = "Clears currently displayed page",
+				order = 13,
+				hidden = true,
+				cmdHidden = false,
+				confirm = true,
+				func = function()
+					AngryAssign_ClearPage()
 				end
 			},
 			backup = {
