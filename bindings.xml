@@ -1,14 +1,14 @@
 <Bindings>
-	<Binding name="AngryAssign_DISPLAY" header="AngryAssign">
+	<Binding name="AngryAssign_DISPLAY" header="AngryAssign" category="ADDONS">
 		AngryAssign_ToggleDisplay()
 	</Binding>
-	<Binding name="AngryAssign_LOCK" header="AngryAssign">
+	<Binding name="AngryAssign_LOCK" category="ADDONS">
 		AngryAssign_ToggleLock()
 	</Binding>
-	<Binding name="AngryAssign_WINDOW" header="AngryAssign">
+	<Binding name="AngryAssign_WINDOW" category="ADDONS">
 		AngryAssign_ToggleWindow()
 	</Binding>
-	<Binding name="AngryAssign_OUTPUT" header="AngryAssign">
+	<Binding name="AngryAssign_OUTPUT" category="ADDONS">
 		AngryAssign_OutputDisplayed()
 	</Binding>
 </Bindings>

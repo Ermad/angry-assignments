@@ -2581,7 +2581,7 @@ function AngryAssign:AfterEnable()
 		self:ClearDisplayed()
 	end
 	
-	self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
+	--self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
