@@ -1,3 +1,7 @@
+## v1.10.1
+
+* Class colors update
+
 ## v1.10.0
 
 * Initial 8.0 update
