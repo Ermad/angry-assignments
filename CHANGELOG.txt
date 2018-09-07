@@ -1,3 +1,7 @@
+## v1.11.0
+
+* Automatically allow raids that are being lead by a guild officer again, with the new Communities API
+
 ## v1.10.1
 
 * Class colors update

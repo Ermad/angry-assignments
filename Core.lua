@@ -25,8 +25,7 @@ local displayTimerId = nil
 local versionLastUpdate = nil
 local versionTimerId = nil
 
-local guildName = nil
-local officerGuildRank = nil -- The lowest officer guild rank
+local guildOfficerNames = nil
 
 -- Used for version tracking
 local warnedOOD = false
@@ -177,7 +176,6 @@ function AngryAssign:SendOutMessage(data, channel, target)
 	end
 
 	if not channel then return end
-	if channel == "GUILD" and not guildName then return end
 
 	-- self:Print("Sending "..data[COMMAND].." over "..channel.." to "..tostring(target))
 	self:SendCommMessage(comPrefix, final, channel, target, "NORMAL")
@@ -410,7 +408,7 @@ end
 function AngryAssign:GetRaidLeader(online_only)
 	if (IsInRaid() or IsInGroup()) then
 		for i = 1, GetNumGroupMembers() do
-			local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML  = GetRaidRosterInfo(i)
+			local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo(i)
 			if rank == 2 then
 				if (not online_only) or online then
 					return EnsureUnitFullName(name)
@@ -452,7 +450,7 @@ function AngryAssign:VersionCheckOutput()
 			if online then
 				if not versionList[ fullname ] then
 					tinsert(missing_addon, name)
-				elseif versionList[ fullname ].valid == false or (versionList[ fullname ].valid == nil and self:GetGuildRank(name) == 100) then
+				elseif versionList[ fullname ].valid == false or versionList[ fullname ].valid == nil then
 					tinsert(invalid_raid, name)
 				elseif ver ~= versionList[ fullname ].version then
 					tinsert(different_version, string.format("%s - %s", name, versionList[ fullname ].version)  )
@@ -1427,45 +1425,41 @@ function AngryAssign:CreateBackup()
 	end
 	self:UpdateSelected()
 end
-
-function AngryAssign:GetGuildRank(player)
-	if not guildName or not player then return 100 end
-	local fullplayer = EnsureUnitFullName(player)
-
-	for i = 1, GetNumGuildMembers() do
-		local fullname, _, rankIndex = GetGuildRosterInfo(i)
-		if fullname and (fullname == fullplayer) then
-			return rankIndex 
-		end
-	end
-	return 100
-end
-
 function AngryAssign:ClearDisplayed()
 	AngryAssign_State.displayed = nil
 	self:UpdateDisplayed()
 	self:UpdateTree()
 end
 
-function AngryAssign:UpdateOfficerRank()
-	local currentGuildName = GetGuildInfo('player')
-	local newOfficerGuildRank = 0
-	-- if currentGuildName then
-	-- 	for i = 1, GuildControlGetNumRanks() do
-	-- 		GuildControlSetRank(i)
-	-- 		if select(4, GuildControlGetRankFlags()) ~= nil then
-	-- 			newOfficerGuildRank = i - 1
-	-- 		else
-	-- 			break
-	-- 		end
-	-- 	end
-	-- end
-	newOfficerGuildRank = 1
-	if newOfficerGuildRank ~= officerGuildRank or currentGuildName ~= guildName then
-		officerGuildRank = newOfficerGuildRank
-		guildName = currentGuildName
-		self:UpdateSelected()
+function AngryAssign:IsGuildOfficer(player)
+	if not player then return false end
+	local fullplayer = EnsureUnitFullName(player)
+
+	if guildOfficerNames == nil then
+		self:UpdateOfficerRank()
 	end
+
+	return guildOfficerNames[fullplayer]
+end
+
+function AngryAssign:ResetOfficerRank()
+	guildOfficerNames = nil
+end
+
+function AngryAssign:UpdateOfficerRank()
+	guildOfficerNames = {}
+
+	local clubId, streamId = C_Club.GetGuildClubId(), nil
+	local memberIds = CommunitiesUtil.GetMemberIdsSortedByName(clubId, streamId)
+	local allMemberList = CommunitiesUtil.GetMemberInfo(clubId, memberIds)
+
+	for _, memberInfo in ipairs(allMemberList) do
+		if memberInfo.role == Enum.ClubRoleIdentifier.Owner or memberInfo.role == Enum.ClubRoleIdentifier.Leader or memberInfo.role == Enum.ClubRoleIdentifier.Moderator then
+			guildOfficerNames[EnsureUnitFullName(memberInfo.name)] = true
+		end
+	end
+
+	return guildOfficerNames
 end
 
 function AngryAssign:IsPlayerRaidLeader()
@@ -1476,7 +1470,7 @@ end
 function AngryAssign:IsGuildRaid()
 	local leader = self:GetRaidLeader()
 	
-	if self:GetGuildRank(leader) <= officerGuildRank then -- If leader is in current guild and an officer rank
+	if self:IsGuildOfficer(leader) then
 		return true
 	end
 	
@@ -1491,7 +1485,7 @@ function AngryAssign:IsValidRaid()
 	
 	local leader = self:GetRaidLeader()
 	
-	if self:GetGuildRank(leader) <= officerGuildRank then -- If leader is in current guild and an officer rank
+	if self:IsGuildOfficer(leader) then
 		return true
 	end
 	
@@ -2514,7 +2508,7 @@ function AngryAssign:ChatCommand(input)
 end
 
 function AngryAssign:OnEnable()
-	self:UpdateOfficerRank()
+	self:ResetOfficerRank()
 	self:CreateDisplay()
 	
 	self:ScheduleTimer("AfterEnable", 4)
@@ -2562,15 +2556,12 @@ function AngryAssign:GROUP_ROSTER_UPDATE()
 end
 
 function AngryAssign:PLAYER_GUILD_UPDATE()
-	self:UpdateOfficerRank()
-	self:RegisterEvent("GUILD_ROSTER_UPDATE")
-	GuildRoster()
+	self:ResetOfficerRank()
+	self:PermissionsUpdated()
 end
 
-function AngryAssign:GUILD_ROSTER_UPDATE()
-	self:UpdateOfficerRank()
-	self:PermissionsUpdated()
-	self:UnregisterEvent("GUILD_ROSTER_UPDATE")
+function AngryAssign:GUILD_ROSTER_UPDATE(...)
+	self:ResetOfficerRank()
 end
 
 function AngryAssign:AfterEnable()
@@ -2585,6 +2576,7 @@ function AngryAssign:AfterEnable()
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
+	self:RegisterEvent("GUILD_ROSTER_UPDATE")
 	
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()
