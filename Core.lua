@@ -1454,7 +1454,7 @@ function AngryAssign:UpdateOfficerRank()
 	local allMemberList = CommunitiesUtil.GetMemberInfo(clubId, memberIds)
 
 	for _, memberInfo in ipairs(allMemberList) do
-		if memberInfo.role == Enum.ClubRoleIdentifier.Owner or memberInfo.role == Enum.ClubRoleIdentifier.Leader or memberInfo.role == Enum.ClubRoleIdentifier.Moderator then
+		if memberInfo.name and (memberInfo.role == Enum.ClubRoleIdentifier.Owner or memberInfo.role == Enum.ClubRoleIdentifier.Leader or memberInfo.role == Enum.ClubRoleIdentifier.Moderator) then
 			guildOfficerNames[EnsureUnitFullName(memberInfo.name)] = true
 		end
 	end
