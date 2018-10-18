@@ -1,3 +1,7 @@
+## v1.11.1
+
+* Small permissions bug fixes
+
 ## v1.11.0
 
 * Automatically allow raids that are being lead by a guild officer again, with the new Communities API

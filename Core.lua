@@ -2561,6 +2561,10 @@ function AngryAssign:PLAYER_GUILD_UPDATE()
 end
 
 function AngryAssign:GUILD_ROSTER_UPDATE(...)
+	local canRequestRosterUpdate = ...
+	if canRequestRosterUpdate then
+		GuildRoster()
+	end
 	self:ResetOfficerRank()
 end
 
@@ -2571,13 +2575,15 @@ function AngryAssign:AfterEnable()
 	if not (IsInRaid() or IsInGroup()) then
 		self:ClearDisplayed()
 	end
-	
+
 	--self:RegisterEvent("PARTY_CONVERTED_TO_RAID")
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 	self:RegisterEvent("GUILD_ROSTER_UPDATE")
-	
+
+	GuildRoster()
+
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()
 	self:SendVerQuery()
