@@ -2515,6 +2515,9 @@ function AngryAssign:OnEnable()
 
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
 	self:RegisterEvent("PLAYER_GUILD_UPDATE")
+	self:RegisterEvent("GUILD_ROSTER_UPDATE")
+
+	GuildRoster()
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
@@ -2580,9 +2583,6 @@ function AngryAssign:AfterEnable()
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
-	self:RegisterEvent("GUILD_ROSTER_UPDATE")
-
-	GuildRoster()
 
 	self:SendRequestDisplay()
 	self:UpdateDisplayedIfNewGroup()
