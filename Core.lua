@@ -168,9 +168,9 @@ function AngryAssign:SendOutMessage(data, channel, target)
 	if not channel then
 		if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
 			channel = "INSTANCE_CHAT"
-		elseif IsInRaid() then
+		elseif IsInRaid(LE_PARTY_CATEGORY_HOME) then
 			channel = "RAID"
-		elseif IsInGroup() then
+		elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
 			channel = "PARTY"
 		end
 	end
@@ -1903,7 +1903,7 @@ function AngryAssign:UpdateDisplayed()
 				return select(5, EJ_GetEncounterInfo(id))
 			end)
 			:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
-				return select(9, EJ_GetSectionInfo(id))
+				return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 			end)
 			:gsub(ci_pattern('{star}'), "{rt1}")
 			:gsub(ci_pattern('{circle}'), "{rt2}")
@@ -2010,7 +2010,7 @@ function AngryAssign:OutputDisplayed(id)
 				return select(5, EJ_GetEncounterInfo(id))
 			end)
 			:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
-				return select(9, EJ_GetSectionInfo(id))
+				return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 			end)
 			:gsub(ci_pattern('{star}'), "{rt1}")
 			:gsub(ci_pattern('{circle}'), "{rt2}")
