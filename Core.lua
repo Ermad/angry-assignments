@@ -863,6 +863,7 @@ function AngryAssign:CreateWindow()
 	window.frame:SetMinResize(700, 400)
 	window.frame:SetFrameStrata("HIGH")
 	window.frame:SetFrameLevel(1)
+	window.frame:SetClampedToScreen(true)
 	tinsert(UISpecialFrames, "AngryAssign_Window")
 
 	local tree = AceGUI:Create("AngryTreeGroup")
