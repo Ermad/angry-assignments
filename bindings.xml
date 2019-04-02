@@ -2,6 +2,12 @@
 	<Binding name="AngryAssign_DISPLAY" header="AngryAssign" category="ADDONS">
 		AngryAssign_ToggleDisplay()
 	</Binding>
+	<Binding name="AngryAssign_SHOW_DISPLAY" category="ADDONS">
+		AngryAssign_ShowDisplay()
+	</Binding>
+	<Binding name="AngryAssign_HIDE_DISPLAY" category="ADDONS">
+		AngryAssign_HideDisplay()
+	</Binding>
 	<Binding name="AngryAssign_LOCK" category="ADDONS">
 		AngryAssign_ToggleLock()
 	</Binding>

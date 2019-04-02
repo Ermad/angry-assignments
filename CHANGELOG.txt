@@ -1,3 +1,7 @@
+## v1.11.7
+
+* Added new keybinds to hide/show assignment display
+
 ## v1.11.6
 
 * Prevent assignment editor from being dragged offscreen

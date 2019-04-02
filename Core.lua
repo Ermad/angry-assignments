@@ -10,6 +10,8 @@ BINDING_HEADER_AngryAssign = "Angry Assignments"
 BINDING_NAME_AngryAssign_WINDOW = "Toggle Window"
 BINDING_NAME_AngryAssign_LOCK = "Toggle Lock"
 BINDING_NAME_AngryAssign_DISPLAY = "Toggle Display"
+BINDING_NAME_AngryAssign_SHOW_DISPLAY = "Show Display"
+BINDING_NAME_AngryAssign_HIDE_DISPLAY = "Hide Display"
 BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 
 local AngryAssign_Version = '@project-version@'
@@ -1560,6 +1562,14 @@ end
 
 function AngryAssign_ToggleDisplay()
 	AngryAssign:ToggleDisplay()
+end
+
+function AngryAssign_ShowDisplay()
+	AngryAssign:ShowDisplay()
+end
+
+function AngryAssign_HideDisplay()
+	AngryAssign:HideDisplay()
 end
 
 function AngryAssign:ShowDisplay()
