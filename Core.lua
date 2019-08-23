@@ -2576,10 +2576,10 @@ end
 
 function AngryAssign:GUILD_ROSTER_UPDATE(...)
 	local canRequestRosterUpdate = ...
+	self:ResetOfficerRank()
 	if canRequestRosterUpdate then
 		GuildRoster()
 	end
-	self:ResetOfficerRank()
 end
 
 function AngryAssign:AfterEnable()
