@@ -1452,13 +1452,15 @@ end
 function AngryAssign:UpdateOfficerRank()
 	guildOfficerNames = {}
 
-	local clubId, streamId = C_Club.GetGuildClubId(), nil
-	local memberIds = CommunitiesUtil.GetMemberIdsSortedByName(clubId, streamId)
-	local allMemberList = CommunitiesUtil.GetMemberInfo(clubId, memberIds)
+	if C_Club and C_Club.GetGuildClubId then
+		local clubId, streamId = C_Club.GetGuildClubId(), nil
+		local memberIds = CommunitiesUtil.GetMemberIdsSortedByName(clubId, streamId)
+		local allMemberList = CommunitiesUtil.GetMemberInfo(clubId, memberIds)
 
-	for _, memberInfo in ipairs(allMemberList) do
-		if memberInfo.name and (memberInfo.role == Enum.ClubRoleIdentifier.Owner or memberInfo.role == Enum.ClubRoleIdentifier.Leader or memberInfo.role == Enum.ClubRoleIdentifier.Moderator) then
-			guildOfficerNames[EnsureUnitFullName(memberInfo.name)] = true
+		for _, memberInfo in ipairs(allMemberList) do
+			if memberInfo.name and (memberInfo.role == Enum.ClubRoleIdentifier.Owner or memberInfo.role == Enum.ClubRoleIdentifier.Leader or memberInfo.role == Enum.ClubRoleIdentifier.Moderator) then
+				guildOfficerNames[EnsureUnitFullName(memberInfo.name)] = true
+			end
 		end
 	end
 
