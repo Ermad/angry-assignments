@@ -17,6 +17,8 @@ BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
 
+local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+
 local protocolVersion = 1
 local comPrefix = "AnAss"..protocolVersion
 local updateFrequency = 2
@@ -1984,7 +1986,7 @@ function AngryAssign:OutputDisplayed(id)
 	if not id then id = AngryAssign_State.displayed end
 	local page = AngryAssign_Pages[ id ]
 	local channel
-	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
+	if not isClassic and (IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE)) then
 		channel = "INSTANCE_CHAT"
 	elseif IsInRaid() then
 		channel = "RAID"
