@@ -1,4 +1,4 @@
-## Interface: 80200
+## Interface: 80300
 ## Title: Angry Assignments
 ## Author: Ermad
 ## Version: @project-version@
