@@ -1,6 +1,10 @@
-## v1.13.0
+## v1.13.1c
 
-* ToC bump for 8.3
+* Bug fixes for classic
+
+## v1.13.0c
+
+* ToC change for classic release
 
 ## v1.12.1
 
