@@ -1625,7 +1625,7 @@ function AngryAssign:CreateDisplay()
 	backdrop:SetDrawLayer("BACKGROUND")
 	self.backdrop = backdrop
 
-	local mover = CreateFrame("Frame", nil, frame)
+	local mover = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
 	mover:SetPoint("LEFT",0,0)
 	mover:SetPoint("RIGHT",0,0)
 	mover:SetHeight(16)
@@ -2540,7 +2540,9 @@ function AngryAssign:OnEnable()
 	self:RegisterEvent("PLAYER_GUILD_UPDATE")
 	self:RegisterEvent("GUILD_ROSTER_UPDATE")
 
-	GuildRoster()
+	if isClassic then
+		GuildRoster()
+	end
 
 	LSM.RegisterCallback(self, "LibSharedMedia_Registered", "UpdateMedia")
 	LSM.RegisterCallback(self, "LibSharedMedia_SetGlobal", "UpdateMedia")
@@ -2589,7 +2591,7 @@ end
 function AngryAssign:GUILD_ROSTER_UPDATE(...)
 	local canRequestRosterUpdate = ...
 	self:ResetOfficerRank()
-	if canRequestRosterUpdate then
+	if canRequestRosterUpdate and isClassic then
 		GuildRoster()
 	end
 end
