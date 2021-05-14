@@ -1,3 +1,7 @@
+## v1.13.2c
+
+* ToC bump for classic
+
 ## v1.13.1c
 
 * Bug fixes for classic
