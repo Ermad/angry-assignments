@@ -1,4 +1,4 @@
-## Interface: 90001
+## Interface: 90002
 ## Title: Angry Assignments
 ## Author: Ermad
 ## Version: @project-version@
