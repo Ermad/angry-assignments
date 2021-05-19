@@ -18,6 +18,8 @@ local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
 
 local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+local isClassicVanilla = isClassic
+local isClassicTBC = false
 
 local protocolVersion = 1
 local comPrefix = "AnAss"..protocolVersion
@@ -270,16 +272,23 @@ function AngryAssign:ProcessMessage(sender, data)
 		ver = tostring(data[VERSION_Version])
 		timestamp = tonumber(data[VERSION_Timestamp])
 
-		local localTimestamp, localIsClassic
-		if AngryAssign_Timestamp:sub(1,1) == "@" then
-			localTimestamp = "dev"
-			localIsClassic = isClassic
-		else
+		local localTimestamp = "dev"
+		local localIsClassic = 0
+		if AngryAssign_Timestamp:sub(1,1) ~= "@" then
 			localTimestamp = tonumber(AngryAssign_Timestamp)
-			localIsClassic = AngryAssign_Version:sub(-1) == "c"
+			if AngryAssign_Version:sub(-3) == "tbc" then
+				localIsClassic = 2
+			elseif AngryAssign_Version:sub(-1) == "c" then
+				localIsClassic = 1
+			end
 		end
 
-		local remoteIsClassic = ver:sub(-1,1) == "c"
+		local remoteIsClassic = 0
+		if ver:sub(-3) == "tbc" then
+			remoteIsClassic = 2
+		elseif ver:sub(-1) == "c" then
+			remoteIsClassic = 1
+		end
 
 		local localStr = tostring(localTimestamp)
 		local remoteStr = tostring(timestamp)
