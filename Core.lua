@@ -17,9 +17,9 @@ BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
 
-local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
-local isClassicVanilla = isClassic
-local isClassicTBC = false
+local isClassicVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+local isClassicTBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+local isClassic = isClassicVanilla or isClassicTBC
 
 local protocolVersion = 1
 local comPrefix = "AnAss"..protocolVersion
