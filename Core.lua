@@ -789,7 +789,6 @@ function AngryAssign_PageMenu(pageId)
 	PagesDropDownList[2].arg1 = pageId
 	PagesDropDownList[2].disabled = not permission
 	PagesDropDownList[3].arg1 = pageId
-	PagesDropDownList[3].disabled = not permission
 
 	local categories = AngryAssign_CategoryMenuList(pageId)
 	if categories ~= nil then
