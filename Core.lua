@@ -798,7 +798,6 @@ function AngryAssign_PageMenu(pageId)
 	PagesDropDownList[2].arg1 = pageId
 	PagesDropDownList[2].disabled = not permission
 	PagesDropDownList[3].arg1 = pageId
-	PagesDropDownList[3].disabled = not permission
 
 	local categories = AngryAssign_CategoryMenuList(pageId)
 	if categories ~= nil then
@@ -1958,8 +1957,13 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{paladin}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:32:48|t")
 			:gsub(ci_pattern('{druid}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:0:16|t")
 			:gsub(ci_pattern('{shaman}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:16:32|t")
-
-		if not isClassic then
+		
+		if not isClassic or isClassicTBC then
+			text = text:gsub(ci_pattern('{hero}'), "{heroism}")
+				:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
+				:gsub(ci_pattern('{bloodlust}'), "{bl}")
+				:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
+		elseif not isClassic then
 			text = text:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
 				:gsub(ci_pattern('|cmonk'), "|cff00ff96")
 				:gsub(ci_pattern('|cdemonhunter'), "|cffa330c9")
@@ -1969,10 +1973,6 @@ function AngryAssign:UpdateDisplayed()
 				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
 					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 				end)
-				:gsub(ci_pattern('{hero}'), "{heroism}")
-				:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
-				:gsub(ci_pattern('{bloodlust}'), "{bl}")
-				:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
 				:gsub(ci_pattern('{deathknight}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:32:48|t")
 				:gsub(ci_pattern('{monk}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:32:48|t")
 				:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
@@ -2066,8 +2066,12 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{druid}'), LOCALIZED_CLASS_NAMES_MALE["DRUID"])
 			:gsub(ci_pattern('{shaman}'), LOCALIZED_CLASS_NAMES_MALE["SHAMAN"])
 
-
-		if not isClassic then
+		if not isClassic or isClassicTBC then
+			output = output:gsub(ci_pattern('{bloodlust}'), "{bl}")
+				:gsub(ci_pattern('{bl}'), 'Bloodlust')
+				:gsub(ci_pattern('{hero}'), "{heroism}")
+				:gsub(ci_pattern('{heroism}'), 'Heroism')
+		elseif not isClassic then
 			output = output:gsub(ci_pattern('|cdeathknight'), "")
 				:gsub(ci_pattern('|cmonk'), "")
 				:gsub(ci_pattern('|cdemonhunter'), "")
@@ -2077,10 +2081,6 @@ function AngryAssign:OutputDisplayed(id)
 				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
 					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 				end)
-				:gsub(ci_pattern('{bloodlust}'), "{bl}")
-				:gsub(ci_pattern('{bl}'), 'Bloodlust')
-				:gsub(ci_pattern('{hero}'), "{heroism}")
-				:gsub(ci_pattern('{heroism}'), 'Heroism')
 				:gsub(ci_pattern('{deathknight}'), LOCALIZED_CLASS_NAMES_MALE["DEATHKNIGHT"])
 				:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
 				:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
