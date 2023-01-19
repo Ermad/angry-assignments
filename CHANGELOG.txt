@@ -1,3 +1,8 @@
+## v1.15.1
+
+* WotLK release, via Nezz
+* ToC bump
+
 ## v1.15.0
 
 * Big fixes for 10.0
