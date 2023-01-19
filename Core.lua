@@ -17,7 +17,10 @@ BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 local AngryAssign_Version = '@project-version@'
 local AngryAssign_Timestamp = '@project-date-integer@'
 
-local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+local isClassicVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+local isClassicTBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+local isClassicWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
+local isClassic = isClassicVanilla or isClassicTBC or isClassicWrath
 
 local protocolVersion = 1
 local comPrefix = "AnAss"..protocolVersion
@@ -270,16 +273,23 @@ function AngryAssign:ProcessMessage(sender, data)
 		ver = tostring(data[VERSION_Version])
 		timestamp = tonumber(data[VERSION_Timestamp])
 
-		local localTimestamp, localIsClassic
-		if AngryAssign_Timestamp:sub(1,1) == "@" then
-			localTimestamp = "dev"
-			localIsClassic = isClassic
-		else
+		local localTimestamp = "dev"
+		local localIsClassic = 0
+		if AngryAssign_Timestamp:sub(1,1) ~= "@" then
 			localTimestamp = tonumber(AngryAssign_Timestamp)
-			localIsClassic = AngryAssign_Version:sub(-1) == "c"
+			if AngryAssign_Version:sub(-3) == "tbc" then
+				localIsClassic = 2
+			elseif AngryAssign_Version:sub(-1) == "c" then
+				localIsClassic = 1
+			end
 		end
 
-		local remoteIsClassic = ver:sub(-1,1) == "c"
+		local remoteIsClassic = 0
+		if ver:sub(-3) == "tbc" then
+			remoteIsClassic = 2
+		elseif ver:sub(-1) == "c" then
+			remoteIsClassic = 1
+		end
 
 		local localStr = tostring(localTimestamp)
 		local remoteStr = tostring(timestamp)
@@ -872,7 +882,11 @@ function AngryAssign:CreateWindow()
 	AngryAssign.window = window
 
 	AngryAssign_Window = window.frame
-	window.frame:SetResizeBounds(700, 400)
+	if window.frame.SetResizeBounds then -- WoW 10.0
+		window.frame:SetResizeBounds(700, 400)
+	else
+		window.frame:SetMinResize(700, 400)
+	end
 	window.frame:SetFrameStrata("HIGH")
 	window.frame:SetFrameLevel(1)
 	window.frame:SetClampedToScreen(true)
@@ -1612,7 +1626,12 @@ function AngryAssign:CreateDisplay()
 	frame:SetMovable(true)
 	frame:SetResizable(true)
 	frame:SetClampedToScreen(true)
-	frame:SetResizeBounds(180,1, 830,1)
+	if frame.SetResizeBounds then -- WoW 10.0
+		frame:SetResizeBounds(180, 1, 830, 1)
+	else
+		frame:SetMinResize(180,1)
+		frame:SetMaxResize(830,1)
+	end
 	frame:SetFrameStrata("MEDIUM")	
 	self.frame = frame
 
@@ -1947,8 +1966,13 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{paladin}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:32:48|t")
 			:gsub(ci_pattern('{druid}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:0:16|t")
 			:gsub(ci_pattern('{shaman}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:16:32|t")
-
-		if not isClassic then
+		
+		if not isClassicVanilla then
+			text = text:gsub(ci_pattern('{hero}'), "{heroism}")
+				:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
+				:gsub(ci_pattern('{bloodlust}'), "{bl}")
+				:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
+		elseif not isClassic then
 			text = text:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
 				:gsub(ci_pattern('|cmonk'), "|cff00ff96")
 				:gsub(ci_pattern('|cdemonhunter'), "|cffa330c9")
@@ -1958,10 +1982,6 @@ function AngryAssign:UpdateDisplayed()
 				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
 					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 				end)
-				:gsub(ci_pattern('{hero}'), "{heroism}")
-				:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
-				:gsub(ci_pattern('{bloodlust}'), "{bl}")
-				:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
 				:gsub(ci_pattern('{deathknight}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:32:48|t")
 				:gsub(ci_pattern('{monk}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:32:48|t")
 				:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
@@ -2055,8 +2075,12 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{druid}'), LOCALIZED_CLASS_NAMES_MALE["DRUID"])
 			:gsub(ci_pattern('{shaman}'), LOCALIZED_CLASS_NAMES_MALE["SHAMAN"])
 
-
-		if not isClassic then
+		if not isClassicVanilla then
+			output = output:gsub(ci_pattern('{bloodlust}'), "{bl}")
+				:gsub(ci_pattern('{bl}'), 'Bloodlust')
+				:gsub(ci_pattern('{hero}'), "{heroism}")
+				:gsub(ci_pattern('{heroism}'), 'Heroism')
+		elseif not isClassic then
 			output = output:gsub(ci_pattern('|cdeathknight'), "")
 				:gsub(ci_pattern('|cmonk'), "")
 				:gsub(ci_pattern('|cdemonhunter'), "")
@@ -2066,10 +2090,6 @@ function AngryAssign:OutputDisplayed(id)
 				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
 					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 				end)
-				:gsub(ci_pattern('{bloodlust}'), "{bl}")
-				:gsub(ci_pattern('{bl}'), 'Bloodlust')
-				:gsub(ci_pattern('{hero}'), "{heroism}")
-				:gsub(ci_pattern('{heroism}'), 'Heroism')
 				:gsub(ci_pattern('{deathknight}'), LOCALIZED_CLASS_NAMES_MALE["DEATHKNIGHT"])
 				:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
 				:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
