@@ -1967,26 +1967,37 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{druid}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:0:16|t")
 			:gsub(ci_pattern('{shaman}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:16:32|t")
 		
-		if not isClassicVanilla then
-			text = text:gsub(ci_pattern('{hero}'), "{heroism}")
-				:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
-				:gsub(ci_pattern('{bloodlust}'), "{bl}")
-				:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
-		elseif not isClassic then
-			text = text:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
-				:gsub(ci_pattern('|cmonk'), "|cff00ff96")
-				:gsub(ci_pattern('|cdemonhunter'), "|cffa330c9")
-				:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
-					return select(5, EJ_GetEncounterInfo(id))
-				end)
-				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
-					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
-				end)
-				:gsub(ci_pattern('{deathknight}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:32:48|t")
-				:gsub(ci_pattern('{monk}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:32:48|t")
-				:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
-		end
+        if not isClassicVanilla then
+            text = text:gsub(ci_pattern('{hero}'), "{heroism}")
+                :gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
+                :gsub(ci_pattern('{bloodlust}'), "{bl}")
+                :gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
 
+			if not isClassicTBC then
+				text = text:gsub(ci_pattern('|cdk'), "|cdeathknight")
+                	:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
+					:gsub(ci_pattern('{dk}'), "{deathknight}")
+					:gsub(ci_pattern('{deathknight}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:32:48|t")
+						
+				if not isClassicWrath then
+					text = text:gsub(ci_pattern('|cmonk'), "|cff00ff96")
+						:gsub(ci_pattern('|cdh'), "|cdemonhunter")
+						:gsub(ci_pattern('|cdemonhunter'), "|cffa330c9")
+						:gsub(ci_pattern('|cevoker'), "|cff33937f")
+						:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
+							return select(5, EJ_GetEncounterInfo(id))
+						end)
+						:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
+							return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
+						end)
+						:gsub(ci_pattern('{monk}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:32:48:32:48|t")
+						:gsub(ci_pattern('{dh}'), "{demonhunter}")
+						:gsub(ci_pattern('{demonhunter}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:64:48:32:48|t")
+						:gsub(ci_pattern('{evoker}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:48:64|t")
+				end
+			end
+        end
+		
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
@@ -2045,7 +2056,6 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('|cshaman'), "")
 			:gsub(ci_pattern('|cwarlock'), "")
 			:gsub(ci_pattern('|cwarrior'), "")
-			:gsub(ci_pattern('|c%w?%w?%w?%w?%w?%w?%w?%w?'), "")
 			:gsub(ci_pattern('{spell%s+(%d+)}'), function(id)
 				return GetSpellLink(id)
 			end)
@@ -2080,20 +2090,33 @@ function AngryAssign:OutputDisplayed(id)
 				:gsub(ci_pattern('{bl}'), 'Bloodlust')
 				:gsub(ci_pattern('{hero}'), "{heroism}")
 				:gsub(ci_pattern('{heroism}'), 'Heroism')
-		elseif not isClassic then
-			output = output:gsub(ci_pattern('|cdeathknight'), "")
-				:gsub(ci_pattern('|cmonk'), "")
-				:gsub(ci_pattern('|cdemonhunter'), "")
-				:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
-					return select(5, EJ_GetEncounterInfo(id))
-				end)
-				:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
-					return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
-				end)
-				:gsub(ci_pattern('{deathknight}'), LOCALIZED_CLASS_NAMES_MALE["DEATHKNIGHT"])
-				:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
-				:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
-		end
+
+			if not isClassicTBC then
+				output = output:gsub(ci_pattern('|cdk'), "|cdeathknight")
+					:gsub(ci_pattern('|cdeathknight'), "")
+					:gsub(ci_pattern('{dk}'), "{deathknight}")
+					:gsub(ci_pattern('{deathknight}'), LOCALIZED_CLASS_NAMES_MALE["DEATHKNIGHT"])
+						
+				if not isClassicWrath then
+					output = output:gsub(ci_pattern('|cmonk'), "")
+						:gsub(ci_pattern('|cdh'), "|cdemonhunter")
+						:gsub(ci_pattern('|cdemonhunter'), "")
+						:gsub(ci_pattern('|cevoker'), "")
+						:gsub(ci_pattern('{boss%s+(%d+)}'), function(id)
+							return select(5, EJ_GetEncounterInfo(id))
+						end)
+						:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
+							return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
+						end)
+                        :gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
+						:gsub(ci_pattern('{dh}'), "{demonhunter}")						
+                        :gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
+						:gsub(ci_pattern('{evoker}'), LOCALIZED_CLASS_NAMES_MALE["EVOKER"])
+				end
+			end
+        end
+
+        output = output:gsub(ci_pattern('|c%w?%w?%w?%w?%w?%w?%w?%w?'), "")
 		
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
