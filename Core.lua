@@ -90,6 +90,37 @@ local VERSION_Version = 2
 local VERSION_Timestamp = 3
 local VERSION_ValidRaid = 4
 
+local EasyMenu = EasyMenu
+if not EasyMenu then
+	local function EasyMenu_Initialize( frame, level, menuList )
+		for index = 1, #menuList do
+			local value = menuList[index]
+			if (value.text) then
+				value.index = index
+				UIDropDownMenu_AddButton( value, level )
+			end
+		end
+	end
+	function EasyMenu(menuList, menuFrame, anchor, x, y, displayMode, autoHideDelay )
+		if ( displayMode == "MENU" ) then
+			menuFrame.displayMode = displayMode
+		end
+		UIDropDownMenu_Initialize(menuFrame, EasyMenu_Initialize, displayMode, nil, menuList)
+		ToggleDropDownMenu(1, nil, menuFrame, anchor, x, y, menuList, nil, autoHideDelay)
+	end
+end
+local GetSpellLink = C_Spell and C_Spell.GetSpellLink or GetSpellLink;
+local GetItemInfo = GetItemInfo or C_Item.GetItemInfo
+local GetSpellInfo = GetSpellInfo or function(spellID)
+	if not spellID then
+		return nil
+	end
+	local spellInfo = C_Spell.GetSpellInfo(spellID)
+	if spellInfo then
+		return spellInfo.name, nil, spellInfo.iconID, spellInfo.castTime, spellInfo.minRange, spellInfo.maxRange, spellInfo.spellID, spellInfo.originalIconID
+	end
+end
+
 -----------------------
 -- Utility Functions --
 -----------------------
@@ -2573,8 +2604,7 @@ end
 
 function AngryAssign:ChatCommand(input)
   if not input or input:trim() == "" then
-	InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
-	InterfaceOptionsFrame_OpenToCategory(blizOptionsPanel)
+	Settings.OpenToCategory("Angry Assignments")
   else
     LibStub("AceConfigCmd-3.0").HandleCommand(self, "aa", "AngryAssign", input)
   end
