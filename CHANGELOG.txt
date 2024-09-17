@@ -1,4 +1,8 @@
-## v.15.2
+## v1.16.0
+
+* Support for TWW
+
+## v1.15.2
 
 * Fixes and updates for escape sequences, via Ricodyn
 * ToC bump
