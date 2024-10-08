@@ -2693,3 +2693,5 @@ function AngryAssign:AfterEnable()
 	self:UpdateDisplayedIfNewGroup()
 	self:SendVerQuery()
 end
+
+_G.AngryAssign = AngryAssign
