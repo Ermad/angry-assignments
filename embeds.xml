@@ -1,17 +1,30 @@
 <Ui xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
-  <Script file="libs\LibStub\LibStub.lua"/>
-  <Include file="libs\CallbackHandler-1.0\CallbackHandler-1.0.xml"/>
-  <Include file="libs\AceAddon-3.0\AceAddon-3.0.xml"/>
-  <Include file="libs\AceGUI-3.0\AceGUI-3.0.xml"/>
-  <Include file="libs\AceConfig-3.0\AceConfig-3.0.xml"/>
-  <Include file="libs\AceConsole-3.0\AceConsole-3.0.xml"/>
-  <Include file="libs\AceTimer-3.0\AceTimer-3.0.xml"/>
-  <Include file="libs\AceComm-3.0\AceComm-3.0.xml"/>
-  <Include file="libs\AceSerializer-3.0\AceSerializer-3.0.xml"/>
-  <Include file="libs\AceEvent-3.0\AceEvent-3.0.xml"/>
-  <Include file="libs\LibSharedMedia-3.0\lib.xml"/>
-  <Include file="libs\AceGUI-3.0-SharedMediaWidgets\widget.xml"/>
-  <Include file="libs\LibCompress\lib.xml"/>
+  <!-- Ace3 framework (LibStub must be first) -->
+  <Script file="libs\Ace3\LibStub\LibStub.lua"/>
+  <Include file="libs\Ace3\CallbackHandler-1.0\CallbackHandler-1.0.xml"/>
+  <Include file="libs\Ace3\AceAddon-3.0\AceAddon-3.0.xml"/>
+  <Include file="libs\Ace3\AceGUI-3.0\AceGUI-3.0.xml"/>
+  <Include file="libs\Ace3\AceConfig-3.0\AceConfig-3.0.xml"/>
+  <Include file="libs\Ace3\AceConsole-3.0\AceConsole-3.0.xml"/>
+  <Include file="libs\Ace3\AceTimer-3.0\AceTimer-3.0.xml"/>
+  <Include file="libs\Ace3\AceComm-3.0\AceComm-3.0.xml"/>
+  <Include file="libs\Ace3\AceSerializer-3.0\AceSerializer-3.0.xml"/>
+  <Include file="libs\Ace3\AceEvent-3.0\AceEvent-3.0.xml"/>
+
+  <!-- Media libraries -->
+  <Script file="libs\LibSharedMedia-3.0\LibSharedMedia-3.0\LibSharedMedia-3.0.lua"/>
+  <Include file="libs\AceGUI-3.0-SharedMediaWidgets\AceGUI-3.0-SharedMediaWidgets\widget.xml"/>
+
+  <!-- Compression -->
+  <Script file="libs\LibDeflate\LibDeflate.lua"/>
+
+  <!-- Window management -->
   <Script file="libs\LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua"/>
+
+  <!-- Minimap button (optional) -->
+  <Script file="libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
+  <Script file="libs\LibDBIcon-1.0\LibDBIcon-1.0.lua"/>
+
+  <!-- Addon widgets -->
   <Script file="AngryTreeGroup.lua"/>
 </Ui>

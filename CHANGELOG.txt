@@ -1,3 +1,44 @@
+## v2.0.1
+
+* Added built-in raid assignment templates, organized by raid tier and version-gated to the current game client
+* TBC Classic: 51 boss templates across all 9 raids (Karazhan, Gruul's Lair, Magtheridon's Lair, Serpentshrine Cavern, Tempest Keep, Hyjal Summit, Black Temple, Zul'Aman, Sunwell Plateau)
+* Templates appear under a new "Templates" category at the bottom of the page tree
+* Right-click a template boss to duplicate it into an editable page
+* Right-click a template raid category to duplicate all bosses into a new category at once
+* Templates are read-only, undeletable, and local-only (never synced over addon comms)
+* Fixed display backdrop extending far below actual text content on short pages
+
+## v2.0.0 (Angry Assignments+ Fork)
+
+* Forked from Angry Assignments and renamed to Angry Assignments+
+* Complete modular refactor: split monolithic Core.lua into focused modules (Core, Comm, Permissions, Pages, Display, Window, Options, TokenPanel, Minimap)
+* New Tokens and Roster panel in the edit window with clickable raid icons, role/buff icons, color codes, and a searchable player roster
+* New Clear Names button: strips all player names from a page while preserving markers and structure, for easy template reuse
+* New minimap button via LibDataBroker and LibDBIcon (left-click opens edit window, right-click toggles display)
+* Expanded permission system: added "Allow Raid Leader" and "Allow Raid Assistants" toggles for non-guild raids
+* New "Sound on Update" option to play an audio cue when assignments change
+* New "Show After Combat" option to automatically re-show assignments when leaving combat
+* New "Display Max Lines" setting (10 to 200, default 70)
+* New Share feature: right-click any page to share it with your raid or party. Shared pages appear in a "Shared with me" section on the receiver's page list, tagged with the sender's name
+* New "Share All Pages" option on category right-click menus to share every page in a category at once
+* New "Currently Displayed" pinned entry at the top of the page tree for quick access to the active assignment
+* Content-based deduplication prevents the same assignment from being received twice when shared
+* Shared pages can be moved into your own categories like any other page
+* Simplified color tag syntax: close a color section with | instead of |r (e.g. |cblue text| instead of |cblue text|r). The old |r syntax still works
+* Added Duplicate page option in the right-click context menu
+* Added `/aa config` and `/aa options` commands to open the Blizzard settings panel directly
+* Added `/aa show` and `/aa hide` commands for explicit display control
+* Replaced LibCompress with LibDeflate for more efficient addon communication
+* Bumped communication protocol to version 2
+* Added Cataclysm Classic and Mists Classic expansion detection
+* Added dedicated TOC files for TBC Classic, Vanilla Classic, and Mists Classic
+* Updated interface version to 120001 (The War Within)
+* Moved all shared state to addon namespace (ns) pattern for proper module isolation
+* Added luacheck linting, Makefile, GitHub Actions CI, and packaging scripts
+* Removed "Change Edit Box Font" option (caused cursor-text misalignment)
+* Fixed trailing whitespace and unused variable warnings throughout the codebase
+* All addon code passes luacheck with zero warnings
+
 ## v1.16.0
 
 * Support for TWW

@@ -1,0 +1,42 @@
+name: Lint & Package
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint:
+    name: Luacheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua and Luacheck
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq lua5.1 luarocks
+          sudo luarocks install luacheck
+
+      - name: Run Luacheck
+        run: luacheck .
+
+  package:
+    name: Package Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build package
+        run: bash package.sh
+
+      - name: Verify zip was created
+        run: |
+          ZIP=$(ls dist/*.zip 2>/dev/null)
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No zip file found in dist/" >&2
+            exit 1
+          fi
+          echo "Package created: $ZIP"
+          unzip -l "$ZIP"
