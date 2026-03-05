@@ -10,7 +10,7 @@ BINDING_NAME_AngryAssign_SHOW_DISPLAY = "Show Display"
 BINDING_NAME_AngryAssign_HIDE_DISPLAY = "Hide Display"
 BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 
-ns.AngryAssign_Version = '2.1.0'
+ns.AngryAssign_Version = '2.1.1'
 ns.AngryAssign_Timestamp = '20260302'
 
 -- Expansion detection

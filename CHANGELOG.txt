@@ -1,3 +1,10 @@
+## v2.1.1
+
+* Fixed variable edit rows to always show a value input box, even for tokens detected from page content
+* Fixed variable row layout so the delete button stays on the same line as the value
+* Fixed inherited category variables showing as duplicates in the page variables section
+* Prevented token/variable insertion when a category (not a page) is selected
+
 ## v2.1.0
 
 * Page pagination: split assignments into multiple pages with {page} tokens, click display to navigate

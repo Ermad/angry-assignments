@@ -272,33 +272,25 @@ function AngryAssign:VarPanel_AddEditRow(content, key, currentValue, isUndefined
 	row:SetFullWidth(true)
 
 	local keyLabel = AceGUI:Create("InteractiveLabel")
-	local labelText
-	if isUndefined then
-		labelText = "|cff00cc00{$" .. key .. "}|r |cffff8800(no value — used in content)|r"
-	else
-		labelText = "|cff00cc00{$" .. key .. "}|r ="
-	end
-	keyLabel:SetText(labelText)
-	keyLabel:SetWidth(isUndefined and 300 or 140)
+	keyLabel:SetText("|cff00cc00{$" .. key .. "}|r =")
+	keyLabel:SetWidth(100)
 	keyLabel:SetHighlight("Interface\\QuestFrame\\UI-QuestTitleHighlight")
 	keyLabel:SetCallback("OnClick", function() InsertVarToken(key) end)
 	if isUndefined then
-		SetTooltip(keyLabel, "Click to insert {$" .. key .. "}\nShows because {$" .. key .. "} is used in the page text but has no value assigned")
+		SetTooltip(keyLabel, "Click to insert {$" .. key .. "}\nUsed in content but no value assigned")
 	else
 		SetTooltip(keyLabel, "Click to insert {$" .. key .. "}")
 	end
 	row:AddChild(keyLabel)
 
-	if not isUndefined then
-		local valueBox = AceGUI:Create("EditBox")
-		valueBox:SetText(currentValue or "")
-		valueBox:SetWidth(180)
-		valueBox:DisableButton(false)
-		valueBox:SetCallback("OnEnterPressed", function(_, _, value)
-			onChange(value)
-		end)
-		row:AddChild(valueBox)
-	end
+	local valueBox = AceGUI:Create("EditBox")
+	valueBox:SetText(currentValue or "")
+	valueBox:SetWidth(180)
+	valueBox:DisableButton(false)
+	valueBox:SetCallback("OnEnterPressed", function(_, _, value)
+		onChange(value)
+	end)
+	row:AddChild(valueBox)
 
 	local delBtn = AceGUI:Create("InteractiveLabel")
 	delBtn:SetText("|cffff4444X|r")

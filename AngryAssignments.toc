@@ -1,7 +1,7 @@
 ## Interface: 120001
 ## Title: Angry Assignments+
 ## Author: Ariailis, Ermad
-## Version: 2.1.0
+## Version: 2.1.1
 ## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config,AngryAssign_Variables
 ## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, LibDeflate, LibWindow-1.1, LibDataBroker-1.1, LibDBIcon-1.0
 
