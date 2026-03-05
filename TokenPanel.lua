@@ -4,13 +4,8 @@ local AngryAssign = LibStub("AceAddon-3.0"):GetAddon("AngryAssignments")
 local AceGUI = LibStub("AceGUI-3.0")
 
 local EnsureUnitShortName = ns.EnsureUnitShortName
-
--- Marker token names used for Clear Names matching
-local MARKER_TOKENS = {
-	"{rt1}", "{rt2}", "{rt3}", "{rt4}", "{rt5}", "{rt6}", "{rt7}", "{rt8}",
-	"{skull}", "{cross}", "{x}", "{star}", "{circle}", "{diamond}", "{triangle}", "{moon}", "{square}",
-	"{tank}", "{healer}", "{dps}", "{damage}",
-}
+local isClassicVanilla = ns.isClassicVanilla
+local isClassicTBC = ns.isClassicTBC
 
 local function MarkDirty()
 	AngryAssign.window.button_revert:SetDisabled(false)
@@ -20,6 +15,8 @@ local function MarkDirty()
 end
 
 local function InsertTextAtCursor(token)
+	local id = AngryAssign:SelectedId()
+	if not id or id < 0 then return end
 	local editBox = AngryAssign.window.text.editBox
 	editBox:SetFocus()
 	editBox:Insert(token)
@@ -63,10 +60,6 @@ local function CreateTokenIcon(token, texture, tooltip, coords)
 	return icon
 end
 
-local function EscapePattern(str)
-	return str:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
-end
-
 local function GetRaidRoster()
 	local roster = {}
 	if IsInRaid() or IsInGroup() then
@@ -82,13 +75,9 @@ local function GetRaidRoster()
 			end
 		end
 	elseif IsInGuild() and GetGuildRosterInfo then
-		-- Request guild data in retail (Classic uses GuildRoster() in Core.lua)
-		if not ns.isClassic and C_GuildInfo and C_GuildInfo.GuildRoster then
-			C_GuildInfo.GuildRoster()
-		end
 		for i = 1, GetNumGuildMembers() do
 			local name, _, _, _, _, _, _, _, isOnline, _, classFileName = GetGuildRosterInfo(i)
-			if name then
+			if name and isOnline then
 				tinsert(roster, {
 					name = EnsureUnitShortName(name),
 					class = classFileName,
@@ -106,21 +95,21 @@ local function ClearNamesFromText()
 	local text = AngryAssign.window.text:GetText()
 	if not text or text == "" then return end
 
-	local roster = GetRaidRoster()
-	if #roster == 0 then return end
+	-- Strip {name ...} tokens first
+	local newText = text:gsub("{[Nn][Aa][Mm][Ee]%s+%S+%s+%u+}", "___")
 
+	-- Fallback: also strip plain roster names (for manually typed names)
+	local roster = GetRaidRoster()
 	for _, info in ipairs(roster) do
-		local escaped = EscapePattern(info.name)
-		for _, marker in ipairs(MARKER_TOKENS) do
-			local escapedMarker = EscapePattern(marker)
-			text = text:gsub("(" .. escapedMarker .. ")(%s+)" .. escaped, "%1%2")
-		end
-		text = text:gsub("([:%-])(%s+)" .. escaped, "%1%2")
+		newText = newText:gsub(info.name, "___")
 	end
 
-	AngryAssign.window.text:SetText(text)
-	AngryAssign.window.text.button:Enable()
-	MarkDirty()
+	if newText == text then return end
+
+	local id = AngryAssign:SelectedId()
+	if id then
+		AngryAssign:UpdateContents(id, newText)
+	end
 end
 
 local function RefreshRosterList(scroll, filter)
@@ -150,7 +139,7 @@ local function RefreshRosterList(scroll, filter)
 				label:SetText(info.name)
 			end
 			label:SetFullWidth(true)
-			label:SetUserData('token', info.name)
+			label:SetUserData('token', '{name ' .. info.name .. ' ' .. (info.class or 'UNKNOWN') .. '}')
 			label:SetHighlight("Interface\\QuestFrame\\UI-QuestTitleHighlight")
 			label:SetCallback('OnClick', TokenClicked)
 			scroll:AddChild(label)
@@ -159,11 +148,11 @@ local function RefreshRosterList(scroll, filter)
 end
 
 
-function AngryAssign:CreateTokenPanel()
+function AngryAssign:CreateSidePanel()
 	local window = AceGUI:Create("Window")
-	window:SetTitle("Tokens & Roster")
-	window:SetLayout("List")
-	window:SetWidth(240)
+	window:SetTitle("Tokens & Variables")
+	window:SetLayout("Fill")
+	window:SetWidth(360)
 	window:SetHeight(500)
 	window.frame:SetParent(self.window.frame)
 	window.frame:ClearAllPoints()
@@ -172,7 +161,15 @@ function AngryAssign:CreateTokenPanel()
 	window.title:SetScript("OnMouseDown", nil)
 	window.title:SetScript("OnMouseUp", nil)
 	window:EnableResize(false)
-	self.tokenpanel = window
+	window:Hide()
+	self.sidepanel = window
+
+	local scroll = AceGUI:Create("ScrollFrame")
+	scroll:SetLayout("List")
+	scroll:SetFullWidth(true)
+	scroll:SetFullHeight(true)
+	window:AddChild(scroll)
+	self.sidepanel_scroll = scroll
 
 	-------------------------------------------------
 	-- Section 1: Raid Icons
@@ -180,7 +177,7 @@ function AngryAssign:CreateTokenPanel()
 	local iconHeading = AceGUI:Create("Heading")
 	iconHeading:SetText("Raid Icons")
 	iconHeading:SetFullWidth(true)
-	window:AddChild(iconHeading)
+	scroll:AddChild(iconHeading)
 
 	local iconGroup = AceGUI:Create("SimpleGroup")
 	iconGroup:SetLayout("Flow")
@@ -198,7 +195,7 @@ function AngryAssign:CreateTokenPanel()
 	for _, ri in ipairs(raidIcons) do
 		iconGroup:AddChild(CreateTokenIcon(ri.token, ri.texture, ri.tip))
 	end
-	window:AddChild(iconGroup)
+	scroll:AddChild(iconGroup)
 
 	-------------------------------------------------
 	-- Section 2: Roles & Buffs
@@ -206,7 +203,7 @@ function AngryAssign:CreateTokenPanel()
 	local roleHeading = AceGUI:Create("Heading")
 	roleHeading:SetText("Roles & Buffs")
 	roleHeading:SetFullWidth(true)
-	window:AddChild(roleHeading)
+	scroll:AddChild(roleHeading)
 
 	local roleGroup = AceGUI:Create("SimpleGroup")
 	roleGroup:SetLayout("Flow")
@@ -221,7 +218,66 @@ function AngryAssign:CreateTokenPanel()
 	end
 	roleGroup:AddChild(CreateTokenIcon("{bl}", "Interface\\Icons\\SPELL_Nature_Bloodlust", "{bl} or {bloodlust}"))
 	roleGroup:AddChild(CreateTokenIcon("{hs}", "Interface\\Icons\\INV_Stone_04", "{hs} or {healthstone}"))
-	window:AddChild(roleGroup)
+	scroll:AddChild(roleGroup)
+
+	-------------------------------------------------
+	-- Section: CC & Dispels
+	-------------------------------------------------
+	local ccHeading = AceGUI:Create("Heading")
+	ccHeading:SetText("CC & Dispels")
+	ccHeading:SetFullWidth(true)
+	scroll:AddChild(ccHeading)
+
+	local ccGroup = AceGUI:Create("SimpleGroup")
+	ccGroup:SetLayout("Flow")
+	ccGroup:SetFullWidth(true)
+
+	-- Interrupt
+	ccGroup:AddChild(CreateTokenIcon("{icon Ability_Kick}", "Interface\\Icons\\Ability_Kick", "Kick (Rogue)\nInserts: {icon Ability_Kick}"))
+
+	-- CC (all versions)
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Nature_Polymorph}", "Interface\\Icons\\Spell_Nature_Polymorph", "Polymorph (Mage)\nInserts: {icon Spell_Nature_Polymorph}"))
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Shadow_Possession}", "Interface\\Icons\\Spell_Shadow_Possession", "Fear (Warlock)\nInserts: {icon Spell_Shadow_Possession}"))
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Shadow_Cripple}", "Interface\\Icons\\Spell_Shadow_Cripple", "Banish (Warlock)\nInserts: {icon Spell_Shadow_Cripple}"))
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Nature_Slow}", "Interface\\Icons\\Spell_Nature_Slow", "Shackle Undead (Priest)\nInserts: {icon Spell_Nature_Slow}"))
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Nature_Sleep}", "Interface\\Icons\\Spell_Nature_Sleep", "Hibernate (Druid)\nInserts: {icon Spell_Nature_Sleep}"))
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Holy_PrayerOfHealing}", "Interface\\Icons\\Spell_Holy_PrayerOfHealing", "Repentance (Paladin)\nInserts: {icon Spell_Holy_PrayerOfHealing}"))
+
+	-- Dispels (all versions)
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Nature_Purge}", "Interface\\Icons\\Spell_Nature_Purge", "Purge (Shaman)\nInserts: {icon Spell_Nature_Purge}"))
+	ccGroup:AddChild(CreateTokenIcon("{icon Ability_Hunter_BeastSoothe}", "Interface\\Icons\\Ability_Hunter_BeastSoothe", "Soothe (Druid)\nInserts: {icon Ability_Hunter_BeastSoothe}"))
+	ccGroup:AddChild(CreateTokenIcon("{icon Spell_Nature_Drowsy}", "Interface\\Icons\\Spell_Nature_Drowsy", "Tranquilizing Shot (Hunter)\nInserts: {icon Spell_Nature_Drowsy}"))
+
+	-- TBC+ abilities
+	if not isClassicVanilla then
+		ccGroup:AddChild(CreateTokenIcon("{icon Spell_Arcane_Arcane02}", "Interface\\Icons\\Spell_Arcane_Arcane02", "Spellsteal (Mage)\nInserts: {icon Spell_Arcane_Arcane02}"))
+		ccGroup:AddChild(CreateTokenIcon("{icon Spell_Arcane_MassDispel}", "Interface\\Icons\\Spell_Arcane_MassDispel", "Mass Dispel (Priest)\nInserts: {icon Spell_Arcane_MassDispel}"))
+
+		-- Wrath+ abilities
+		if not isClassicTBC then
+			ccGroup:AddChild(CreateTokenIcon("{icon Spell_Shaman_Hex}", "Interface\\Icons\\Spell_Shaman_Hex", "Hex (Shaman)\nInserts: {icon Spell_Shaman_Hex}"))
+		end
+	end
+
+	scroll:AddChild(ccGroup)
+
+	-------------------------------------------------
+	-- Section: Page Break
+	-------------------------------------------------
+	local pageBreakHeading = AceGUI:Create("Heading")
+	pageBreakHeading:SetText("Layout")
+	pageBreakHeading:SetFullWidth(true)
+	scroll:AddChild(pageBreakHeading)
+
+	local pageBreakLabel = AceGUI:Create("InteractiveLabel")
+	pageBreakLabel:SetText("|cff808080{page}|r  Page break")
+	pageBreakLabel:SetFullWidth(true)
+	pageBreakLabel:SetUserData('token', '{page}')
+	pageBreakLabel:SetHighlight("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+	pageBreakLabel:SetCallback('OnClick', TokenClicked)
+	pageBreakLabel.frame:SetScript("OnEnter", ShowTooltip(pageBreakLabel, "{page}\nSplits content into clickable pages.\nLeft-click display to go forward, right-click to go back."))
+	pageBreakLabel.frame:SetScript("OnLeave", HideTooltip)
+	scroll:AddChild(pageBreakLabel)
 
 	-------------------------------------------------
 	-- Section 3: Color Codes Reference
@@ -229,7 +285,7 @@ function AngryAssign:CreateTokenPanel()
 	local colorHeading = AceGUI:Create("Heading")
 	colorHeading:SetText("Color Codes")
 	colorHeading:SetFullWidth(true)
-	window:AddChild(colorHeading)
+	scroll:AddChild(colorHeading)
 
 	local colorGroup = AceGUI:Create("SimpleGroup")
 	colorGroup:SetLayout("Flow")
@@ -276,50 +332,74 @@ function AngryAssign:CreateTokenPanel()
 		label.frame:SetScript("OnLeave", HideTooltip)
 		colorGroup:AddChild(label)
 	end
-	window:AddChild(colorGroup)
+	scroll:AddChild(colorGroup)
 
 	-------------------------------------------------
-	-- Section 4: Players
+	-- Section 4: Variables (dynamic, rebuilt on selection change)
+	-------------------------------------------------
+	local varsContainer = AceGUI:Create("SimpleGroup")
+	varsContainer:SetLayout("List")
+	varsContainer:SetFullWidth(true)
+	scroll:AddChild(varsContainer)
+	self.sidepanel_vars = varsContainer
+
+	-------------------------------------------------
+	-- Section 5: Players
 	-------------------------------------------------
 	local rosterHeading = AceGUI:Create("Heading")
 	rosterHeading:SetText("Players")
 	rosterHeading:SetFullWidth(true)
-	window:AddChild(rosterHeading)
+	scroll:AddChild(rosterHeading)
 
 	local clearBtn = AceGUI:Create("Button")
 	clearBtn:SetText("Clear Names")
 	clearBtn:SetFullWidth(true)
 	clearBtn:SetHeight(20)
 	clearBtn:SetCallback("OnClick", function() ClearNamesFromText() end)
-	window:AddChild(clearBtn)
+	scroll:AddChild(clearBtn)
 
 	local searchBox = AceGUI:Create("EditBox")
 	searchBox:SetFullWidth(true)
 	searchBox:DisableButton(true)
 	searchBox:SetLabel("Search")
-	window:AddChild(searchBox)
-	self.tokenpanel_searchbox = searchBox
+	scroll:AddChild(searchBox)
+	self.sidepanel_searchbox = searchBox
 
 	local rosterScroll = AceGUI:Create("ScrollFrame")
 	rosterScroll:SetLayout("List")
 	rosterScroll:SetFullWidth(true)
 	rosterScroll:SetHeight(180)
-	window:AddChild(rosterScroll)
-	self.tokenpanel_scroll = rosterScroll
+	scroll:AddChild(rosterScroll)
+	self.sidepanel_roster = rosterScroll
 
-	searchBox:SetCallback("OnTextChanged", function(widget, event, value)
+	searchBox:SetCallback("OnTextChanged", function(_, _, value)
 		RefreshRosterList(rosterScroll, value)
 	end)
 
-	RefreshRosterList(rosterScroll)
+	self:ScheduleTimer(function() RefreshRosterList(rosterScroll) end, 0)
 end
 
-function AngryAssign:RefreshTokenPanelRoster()
-	if self.tokenpanel and self.tokenpanel_scroll then
+function AngryAssign:RefreshSidePanel()
+	if not self.sidepanel or not self.sidepanel.frame:IsShown() then return end
+
+	-- Refresh variables section
+	if self.sidepanel_vars then
+		self.sidepanel_vars:ReleaseChildren()
+		self:BuildVariablesSection(self.sidepanel_vars)
+	end
+
+	-- Recalculate scroll content height so scrollbar updates
+	if self.sidepanel_scroll then
+		self.sidepanel_scroll:DoLayout()
+	end
+end
+
+function AngryAssign:RefreshSidePanelRoster()
+	if self.sidepanel and self.sidepanel_roster then
 		local filter
-		if self.tokenpanel_searchbox then
-			filter = self.tokenpanel_searchbox:GetText()
+		if self.sidepanel_searchbox then
+			filter = self.sidepanel_searchbox:GetText()
 		end
-		RefreshRosterList(self.tokenpanel_scroll, filter)
+		RefreshRosterList(self.sidepanel_roster, filter)
 	end
 end

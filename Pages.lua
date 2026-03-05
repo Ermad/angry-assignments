@@ -14,12 +14,48 @@ local SHARED_TREE_VALUE    = ns.SHARED_TREE_VALUE
 -- Tree Building               --
 ----------------------------------
 
+-- Sort tree nodes using explicit sort order if available, falling back to alphabetical.
+-- contextKey is "root" for root-level items, or a categoryId for items within a category.
+local function SortTreeNodes(tree, contextKey)
+	local order = AngryAssign_State.sortOrder and AngryAssign_State.sortOrder[contextKey]
+	if not order then
+		table.sort(tree, function(a, b) return a.text < b.text end)
+		return
+	end
+
+	local position = {}
+	for i, val in ipairs(order) do
+		position[val] = i
+	end
+
+	local maxPos = #order
+	table.sort(tree, function(a, b)
+		local posA = position[a.value]
+		local posB = position[b.value]
+		if posA and posB then
+			return posA < posB
+		elseif posA then
+			return true
+		elseif posB then
+			return false
+		else
+			return a.text < b.text
+		end
+	end)
+	return maxPos -- suppress unused warning
+end
+
 local function GetTree_InsertPage(tree, page, filter)
+	local pageName = page.Name
+	-- Variable indicator: show {$} if page uses variable tokens
+	if AngryAssign:PageHasVariableTokens(page.Id) then
+		pageName = pageName .. " |cff00cc00{$}|r"
+	end
 	local node
 	if page.Id == AngryAssign_State.displayed then
-		node = { value = page.Id, text = page.Name, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" }
+		node = { value = page.Id, text = pageName, icon = "Interface\\BUTTONS\\UI-GuildButton-MOTD-Up" }
 	else
-		node = { value = page.Id, text = page.Name }
+		node = { value = page.Id, text = pageName }
 	end
 	if filter then
 		node.visible = page.Name:lower():find(filter, 1, true) ~= nil
@@ -31,7 +67,13 @@ local function GetTree_InsertChildren(categoryId, displayedPages, filter)
 	local tree = {}
 	for _, cat in pairs(AngryAssign_Categories) do
 		if cat.CategoryId == categoryId then
-			table.insert(tree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id, displayedPages, filter) })
+			local catName = cat.Name
+			if AngryAssign_Variables and AngryAssign_Variables.categories
+				and AngryAssign_Variables.categories[cat.Id]
+				and next(AngryAssign_Variables.categories[cat.Id]) then
+				catName = catName .. " |cff00cc00[V]|r"
+			end
+			table.insert(tree, { value = -cat.Id, text = catName, children = GetTree_InsertChildren(cat.Id, displayedPages, filter) })
 		end
 	end
 
@@ -42,7 +84,7 @@ local function GetTree_InsertChildren(categoryId, displayedPages, filter)
 		end
 	end
 
-	table.sort(tree, function(a,b) return a.text < b.text end)
+	SortTreeNodes(tree, categoryId)
 	return tree
 end
 
@@ -89,7 +131,13 @@ function AngryAssign:GetTree(filter)
 	local userTree = {}
 	for _, cat in pairs(AngryAssign_Categories) do
 		if not cat.CategoryId then
-			table.insert(userTree, { value = -cat.Id, text = cat.Name, children = GetTree_InsertChildren(cat.Id, displayedPages, filter) })
+			local catName = cat.Name
+			if AngryAssign_Variables and AngryAssign_Variables.categories
+				and AngryAssign_Variables.categories[cat.Id]
+				and next(AngryAssign_Variables.categories[cat.Id]) then
+				catName = catName .. " |cff00cc00[V]|r"
+			end
+			table.insert(userTree, { value = -cat.Id, text = catName, children = GetTree_InsertChildren(cat.Id, displayedPages, filter) })
 		end
 	end
 
@@ -99,29 +147,68 @@ function AngryAssign:GetTree(filter)
 		end
 	end
 
-	table.sort(userTree, function(a,b) return a.text < b.text end)
+	SortTreeNodes(userTree, "root")
 	for _, node in ipairs(userTree) do
 		table.insert(tree, node)
 	end
 
 	-- 4. Templates root category (always at bottom)
-	if ns.templateTree then
-		local rootNode = ns.templateTree
-		if filter then
-			-- Deep copy with search filter applied to boss pages
-			local filteredRaids = {}
-			for _, raidNode in ipairs(rootNode.children) do
-				local filteredBosses = {}
-				for _, boss in ipairs(raidNode.children) do
-					local copy = { value = boss.value, text = boss.text }
-					copy.visible = boss.text:lower():find(filter, 1, true) ~= nil
-					table.insert(filteredBosses, copy)
+	do
+		local templateChildren = {}
+
+		-- Built-in templates
+		if ns.templateTree then
+			for _, raidNode in ipairs(ns.templateTree.children) do
+				if filter then
+					local filteredBosses = {}
+					for _, boss in ipairs(raidNode.children) do
+						local copy = { value = boss.value, text = boss.text }
+						copy.visible = boss.text:lower():find(filter, 1, true) ~= nil
+						table.insert(filteredBosses, copy)
+					end
+					table.insert(templateChildren, { value = raidNode.value, text = raidNode.text, icon = raidNode.icon, children = filteredBosses })
+				else
+					table.insert(templateChildren, raidNode)
 				end
-				table.insert(filteredRaids, { value = raidNode.value, text = raidNode.text, icon = raidNode.icon, children = filteredBosses })
 			end
-			table.insert(tree, { value = rootNode.value, text = rootNode.text, icon = rootNode.icon, children = filteredRaids })
-		else
-			table.insert(tree, rootNode)
+		end
+
+		-- User templates
+		local ut = AngryAssign_State.userTemplates
+		if ut then
+			for _, utCat in pairs(ut.categories) do
+				local catChildren = {}
+				for _, utPage in pairs(ut.pages) do
+					if utPage.CategoryId == utCat.Id then
+						local node = { value = utPage.Id, text = utPage.Name }
+						if filter then
+							node.visible = utPage.Name:lower():find(filter, 1, true) ~= nil
+						end
+						table.insert(catChildren, node)
+					end
+				end
+				table.sort(catChildren, function(a, b) return a.text < b.text end)
+				table.insert(templateChildren, { value = -utCat.Id, text = utCat.Name, children = catChildren })
+			end
+
+			for _, utPage in pairs(ut.pages) do
+				if not utPage.CategoryId then
+					local node = { value = utPage.Id, text = utPage.Name }
+					if filter then
+						node.visible = utPage.Name:lower():find(filter, 1, true) ~= nil
+					end
+					table.insert(templateChildren, node)
+				end
+			end
+		end
+
+		if #templateChildren > 0 then
+			table.insert(tree, {
+				value = ns.TEMPLATE_ROOT_VALUE,
+				text = "Templates",
+				icon = "Interface\\BUTTONS\\UI-GuildButton-PublicNote-Up",
+				children = templateChildren,
+			})
 		end
 	end
 
@@ -215,6 +302,7 @@ function AngryAssign:UpdateSelected(destructive)
 		self.window.button_add:SetDisabled(true)
 		self.window.button_clear:SetDisabled(true)
 	end
+	self:RefreshSidePanel()
 end
 
 ----------------------------------
@@ -262,7 +350,7 @@ end
 
 function AngryAssign:Get(id)
 	if id == nil then id = self:SelectedId() end
-	return AngryAssign_Pages[id] or ns.templatePages[id]
+	return AngryAssign_Pages[id] or ns.templatePages[id] or (AngryAssign_State.userTemplates and AngryAssign_State.userTemplates.pages[id])
 end
 
 function AngryAssign:GetCat(id)
@@ -278,6 +366,7 @@ function AngryAssign:CreatePage(name)
 	local id = self:Hash("page", math.random(2000000000))
 
 	AngryAssign_Pages[id] = { Id = id, Updated = time(), UpdateId = self:Hash(name, ""), Name = name, Contents = "", ContentHash = LibDeflate:Adler32("") }
+	self:AppendToSortOrder("root", id)
 	self:UpdateTree(id)
 	self:SendPage(id, true)
 end
@@ -294,6 +383,7 @@ function AngryAssign:DuplicatePage(sourceId)
 		Contents = source.Contents,
 		ContentHash = LibDeflate:Adler32(source.Contents),
 	}
+	self:AppendToSortOrder("root", id)
 	self:UpdateTree(id)
 	self:SendPage(id, true)
 end
@@ -325,6 +415,7 @@ function AngryAssign:DuplicateTemplateCategory(catTreeValue)
 		end
 	end
 
+	self:AppendToSortOrder("root", -catId)
 	if AngryAssign_State.tree.groups then
 		AngryAssign_State.tree.groups[-catId] = true
 	end
@@ -350,7 +441,13 @@ end
 
 function AngryAssign:DeletePage(id)
 	if self:IsTemplatePage(id) then return end
+	local delPage = AngryAssign_Pages[id]
+	local delContext = delPage and (delPage.CategoryId or "root") or "root"
 	AngryAssign_Pages[id] = nil
+	if AngryAssign_Variables and AngryAssign_Variables.pages then
+		AngryAssign_Variables.pages[id] = nil
+	end
+	self:RemoveFromSortOrder(delContext, id)
 	if self.window and self:SelectedId() == id then
 		self:SetSelectedId(nil)
 		self:UpdateSelected(true)
@@ -374,6 +471,7 @@ function AngryAssign:CreateCategory(name)
 	local id = self:Hash("cat", math.random(2000000000))
 
 	AngryAssign_Categories[id] = { Id = id, Name = name }
+	self:AppendToSortOrder("root", -id)
 
 	if AngryAssign_State.tree.groups then
 		AngryAssign_State.tree.groups[ -id ] = true
@@ -409,6 +507,13 @@ function AngryAssign:DeleteCategory(id)
 	end
 
 	AngryAssign_Categories[id] = nil
+	if AngryAssign_Variables and AngryAssign_Variables.categories then
+		AngryAssign_Variables.categories[id] = nil
+	end
+	self:RemoveFromSortOrder(cat.CategoryId or "root", -id)
+	if AngryAssign_State.sortOrder then
+		AngryAssign_State.sortOrder[id] = nil
+	end
 
 	self:UpdateTree()
 	self:SetSelectedId(selectedId)
@@ -423,6 +528,14 @@ function AngryAssign:AssignCategory(entryId, parentId)
 	end
 	local parent = self:GetCat(parentId)
 	if not (page or cat) or not parent then return end
+
+	-- Record old context for sort order maintenance
+	local oldContextKey
+	if page then
+		oldContextKey = page.CategoryId or "root"
+	elseif cat then
+		oldContextKey = cat.CategoryId or "root"
+	end
 
 	if page then
 		if page.CategoryId == parentId then
@@ -440,10 +553,236 @@ function AngryAssign:AssignCategory(entryId, parentId)
 		end
 	end
 
+	-- Update sort orders if context changed
+	local newContextKey
+	if page then
+		newContextKey = page.CategoryId or "root"
+	elseif cat then
+		newContextKey = cat.CategoryId or "root"
+	end
+	if oldContextKey and newContextKey and oldContextKey ~= newContextKey then
+		self:RemoveFromSortOrder(oldContextKey, entryId)
+		self:AppendToSortOrder(newContextKey, entryId)
+	end
+
 	local selectedId = self:SelectedId()
 	self:UpdateTree()
 	if selectedId == entryId then
 		self:SetSelectedId( selectedId )
+	end
+end
+
+--------------------------------------
+-- Sort Order Helpers               --
+--------------------------------------
+
+local function GetRootValue(uniquevalue)
+	if not uniquevalue then return nil end
+	local s = tostring(uniquevalue)
+	local sep = s:find("\001", 1, true)
+	if sep then
+		return tonumber(s:sub(1, sep - 1))
+	else
+		return tonumber(s)
+	end
+end
+
+function AngryAssign:RemoveFromSortOrder(contextKey, value)
+	local order = AngryAssign_State.sortOrder and AngryAssign_State.sortOrder[contextKey]
+	if not order then return end
+	for i = #order, 1, -1 do
+		if order[i] == value then
+			table.remove(order, i)
+			break
+		end
+	end
+end
+
+function AngryAssign:AppendToSortOrder(contextKey, value)
+	if AngryAssign_State.sortOrder and AngryAssign_State.sortOrder[contextKey] then
+		table.insert(AngryAssign_State.sortOrder[contextKey], value)
+	end
+end
+
+-- Initialize a sort order for a context by capturing the current alphabetical order.
+function AngryAssign:InitSortOrder(contextKey)
+	if AngryAssign_State.sortOrder[contextKey] then
+		return AngryAssign_State.sortOrder[contextKey]
+	end
+
+	local items = {}
+	if contextKey == "root" then
+		for _, cat in pairs(AngryAssign_Categories) do
+			if not cat.CategoryId then
+				table.insert(items, { value = -cat.Id, name = cat.Name })
+			end
+		end
+		for _, page in pairs(AngryAssign_Pages) do
+			if not page.CategoryId then
+				table.insert(items, { value = page.Id, name = page.Name })
+			end
+		end
+	else
+		for _, cat in pairs(AngryAssign_Categories) do
+			if cat.CategoryId == contextKey then
+				table.insert(items, { value = -cat.Id, name = cat.Name })
+			end
+		end
+		for _, page in pairs(AngryAssign_Pages) do
+			if page.CategoryId == contextKey then
+				table.insert(items, { value = page.Id, name = page.Name })
+			end
+		end
+	end
+
+	table.sort(items, function(a, b) return a.name < b.name end)
+
+	local order = {}
+	for _, item in ipairs(items) do
+		table.insert(order, item.value)
+	end
+
+	AngryAssign_State.sortOrder[contextKey] = order
+	return order
+end
+
+--------------------------------------
+-- Drag-and-Drop Handling           --
+--------------------------------------
+
+function AngryAssign:ValidateDrop(sourceValue, sourceUniqueValue, targetValue, targetUniqueValue, zone)
+	-- Check if source/target are in virtual contexts (Displayed, Shared, Templates)
+	local sourceRoot = GetRootValue(sourceUniqueValue)
+	local targetRoot = GetRootValue(targetUniqueValue)
+
+	-- Can't drag items from virtual contexts
+	if self:IsVirtualCategory(sourceRoot) then return false end
+
+	-- Block drops to Displayed/Shared; allow drops into Templates (copy-to-template)
+	if targetRoot == DISPLAYED_TREE_VALUE or targetRoot == SHARED_TREE_VALUE then return false end
+	if self:IsVirtualCategory(targetRoot) then
+		return zone == "into"
+	end
+
+	-- Can't drag shared pages
+	if sourceValue > 0 then
+		local sp = AngryAssign_Pages[sourceValue]
+		if sp and sp.CategoryId == SHARED_CATEGORY_ID then return false end
+	end
+
+	-- Can't drag template pages
+	if sourceValue > 0 and self:IsTemplatePage(sourceValue) then return false end
+
+	-- For "into" zone, target must be a category (negative value)
+	if zone == "into" and targetValue >= 0 then return false end
+
+	-- Can't drop a category into itself or its descendants
+	if sourceValue < 0 and targetValue < 0 and zone == "into" then
+		local sourceCatId = -sourceValue
+		local targetCatId = -targetValue
+		local id = targetCatId
+		while id do
+			if id == sourceCatId then return false end
+			local c = AngryAssign_Categories[id]
+			id = c and c.CategoryId or nil
+		end
+	end
+
+	return true
+end
+
+function AngryAssign:HandleDrop(sourceValue, sourceUniqueValue, targetValue, targetUniqueValue, zone)
+	if not self:ValidateDrop(sourceValue, sourceUniqueValue, targetValue, targetUniqueValue, zone) then
+		return
+	end
+
+	-- Copy-to-template action
+	local targetRoot = GetRootValue(targetUniqueValue)
+	if targetRoot and self:IsVirtualCategory(targetRoot) then
+		self:CopyToUserTemplate(sourceValue)
+		return
+	end
+
+	local sourceIsPage = sourceValue > 0
+
+	-- Determine source context
+	local sourceContextKey
+	if sourceIsPage then
+		local page = AngryAssign_Pages[sourceValue]
+		sourceContextKey = (page and page.CategoryId) or "root"
+	else
+		local cat = AngryAssign_Categories[-sourceValue]
+		sourceContextKey = (cat and cat.CategoryId) or "root"
+	end
+
+	if zone == "into" then
+		-- Drop into a category
+		local targetCatId = -targetValue
+
+		-- Move source to target category
+		if sourceIsPage then
+			AngryAssign_Pages[sourceValue].CategoryId = targetCatId
+		else
+			AngryAssign_Categories[-sourceValue].CategoryId = targetCatId
+		end
+
+		-- Update sort orders
+		self:RemoveFromSortOrder(sourceContextKey, sourceValue)
+		local targetOrder = self:InitSortOrder(targetCatId)
+		table.insert(targetOrder, sourceValue)
+
+		-- Expand target category in tree
+		if AngryAssign_State.tree.groups then
+			AngryAssign_State.tree.groups[targetUniqueValue] = true
+		end
+	else
+		-- above or below: reorder within or across contexts
+
+		-- Determine target context
+		local targetContextKey
+		if targetValue > 0 then
+			local page = AngryAssign_Pages[targetValue]
+			targetContextKey = (page and page.CategoryId) or "root"
+		else
+			local cat = AngryAssign_Categories[-targetValue]
+			targetContextKey = (cat and cat.CategoryId) or "root"
+		end
+
+		-- If moving between contexts, update CategoryId
+		if sourceContextKey ~= targetContextKey then
+			local newCatId = (targetContextKey == "root") and nil or targetContextKey
+			if sourceIsPage then
+				AngryAssign_Pages[sourceValue].CategoryId = newCatId
+			else
+				AngryAssign_Categories[-sourceValue].CategoryId = newCatId
+			end
+		end
+
+		-- Remove from old context sort order
+		self:RemoveFromSortOrder(sourceContextKey, sourceValue)
+
+		-- Initialize target sort order if needed and find insertion point
+		local targetOrder = self:InitSortOrder(targetContextKey)
+		local insertIdx = #targetOrder + 1
+		for i, val in ipairs(targetOrder) do
+			if val == targetValue then
+				if zone == "below" then
+					insertIdx = i + 1
+				else -- above
+					insertIdx = i
+				end
+				break
+			end
+		end
+
+		table.insert(targetOrder, insertIdx, sourceValue)
+	end
+
+	-- Rebuild tree and re-select
+	local selectedId = self:SelectedId()
+	self:UpdateTree()
+	if selectedId then
+		self:SetSelectedId(selectedId)
 	end
 end
 
@@ -479,7 +818,9 @@ end
 
 function AngryAssign:ClearDisplayed()
 	AngryAssign_State.displayed = nil
+	AngryAssign_State.currentPage = 1
 	self:UpdateDisplayed()
+	self:HideDisplay()
 	self:UpdateTree()
 	self:SendMessage("ANGRY_ASSIGNMENTS_UPDATE")
 end
@@ -585,11 +926,14 @@ function AngryAssign:DisplayPage( id )
 	if not self:PermissionCheck() then return end
 
 	self:TouchPage( id )
-	self:SendPage( id, true )
-	self:SendDisplay( id, true )
+	if not self:IsTemplatePage(id) then
+		self:SendPage( id, true )
+		self:SendDisplay( id, true )
+	end
 
 	if AngryAssign_State.displayed ~= id then
 		AngryAssign_State.displayed = id
+		AngryAssign_State.currentPage = 1
 		AngryAssign:UpdateTree()
 		AngryAssign:DisplayUpdateNotification()
 	end

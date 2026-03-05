@@ -10,7 +10,7 @@ BINDING_NAME_AngryAssign_SHOW_DISPLAY = "Show Display"
 BINDING_NAME_AngryAssign_HIDE_DISPLAY = "Hide Display"
 BINDING_NAME_AngryAssign_OUTPUT = "Output Assignment to Chat"
 
-ns.AngryAssign_Version = '2.0.1'
+ns.AngryAssign_Version = '2.1.0'
 ns.AngryAssign_Timestamp = '20260302'
 
 -- Expansion detection
@@ -188,10 +188,18 @@ end
 
 function AngryAssign:OnInitialize()
 	if AngryAssign_State == nil then
-		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false }
+		AngryAssign_State = { tree = {}, window = {}, display = {}, displayed = nil, locked = false, directionUp = false, currentPage = 1 }
+	end
+	if AngryAssign_State.currentPage == nil then AngryAssign_State.currentPage = 1 end
+	if AngryAssign_State.sortOrder == nil then AngryAssign_State.sortOrder = {} end
+	if AngryAssign_State.userTemplates == nil then
+		AngryAssign_State.userTemplates = { pages = {}, categories = {} }
 	end
 	if AngryAssign_Pages == nil then AngryAssign_Pages = { } end
 	if AngryAssign_Config == nil then AngryAssign_Config = { } end
+	if AngryAssign_Variables == nil then AngryAssign_Variables = { categories = {}, pages = {} } end
+	if not AngryAssign_Variables.categories then AngryAssign_Variables.categories = {} end
+	if not AngryAssign_Variables.pages then AngryAssign_Variables.pages = {} end
 	if AngryAssign_Categories == nil then
 		AngryAssign_Categories = { }
 	else
@@ -287,7 +295,7 @@ function AngryAssign:GROUP_ROSTER_UPDATE()
 	else
 		self:UpdateDisplayedIfNewGroup()
 	end
-	self:RefreshTokenPanelRoster()
+	self:RefreshSidePanelRoster()
 end
 
 function AngryAssign:PLAYER_GUILD_UPDATE()
@@ -305,6 +313,7 @@ function AngryAssign:GUILD_ROSTER_UPDATE(...)
 			C_GuildInfo.GuildRoster()
 		end
 	end
+	self:RefreshSidePanelRoster()
 end
 
 function AngryAssign:AfterEnable()

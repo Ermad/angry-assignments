@@ -390,6 +390,47 @@ local function AngryAssign_TemplateCategoryMenu(catTreeValue)
 	return TemplateCatDropDownList
 end
 
+local UserTemplatePageDropDownList
+local function AngryAssign_UserTemplatePageMenu(pageId)
+	local page = AngryAssign:GetTemplatePage(pageId)
+	if not page then return end
+
+	if not UserTemplatePageDropDownList then
+		UserTemplatePageDropDownList = {
+			{ notCheckable = true, isTitle = true },
+			{ text = "Duplicate", notCheckable = true, func = function(_, id) AngryAssign:DuplicatePage(id) end },
+			{ text = "Delete", notCheckable = true, func = function(_, id) AngryAssign:DeleteUserTemplatePage(id) end },
+		}
+	end
+
+	local permission = AngryAssign:PermissionCheck()
+	UserTemplatePageDropDownList[1].text = page.Name .. " (Saved)"
+	UserTemplatePageDropDownList[2].arg1 = pageId
+	UserTemplatePageDropDownList[2].disabled = not permission
+	UserTemplatePageDropDownList[3].arg1 = pageId
+
+	return UserTemplatePageDropDownList
+end
+
+local UserTemplateCatDropDownList
+local function AngryAssign_UserTemplateCatMenu(catId)
+	local ut = AngryAssign_State.userTemplates
+	local cat = ut and ut.categories[catId]
+	if not cat then return end
+
+	if not UserTemplateCatDropDownList then
+		UserTemplateCatDropDownList = {
+			{ notCheckable = true, isTitle = true },
+			{ text = "Delete", notCheckable = true, func = function(_, cid) AngryAssign:DeleteUserTemplateCat(cid) end },
+		}
+	end
+
+	UserTemplateCatDropDownList[1].text = cat.Name .. " (Saved)"
+	UserTemplateCatDropDownList[2].arg1 = catId
+
+	return UserTemplateCatDropDownList
+end
+
 local AngryAssign_DropDown
 local function AngryAssign_TreeClick(widget, event, value, selected, button)
 	HideDropDownMenu(1)
@@ -412,24 +453,30 @@ local function AngryAssign_TreeClick(widget, event, value, selected, button)
 			if not AngryAssign_DropDown then
 				AngryAssign_DropDown = CreateFrame("Frame", "AngryAssignMenuFrame", UIParent, "UIDropDownMenuTemplate")
 			end
-			EasyMenu(AngryAssign_CategoryMenu(-selectedId), AngryAssign_DropDown, "cursor", 0 , 0, "MENU")
-
-		else
-			local status = (widget.status or widget.localstatus).groups
-			status[value] = not status[value]
-			widget:RefreshTree()
+			if AngryAssign:IsUserTemplateCat(-selectedId) then
+				EasyMenu(AngryAssign_UserTemplateCatMenu(-selectedId), AngryAssign_DropDown, "cursor", 0, 0, "MENU")
+			else
+				EasyMenu(AngryAssign_CategoryMenu(-selectedId), AngryAssign_DropDown, "cursor", 0, 0, "MENU")
+			end
+			return false
 		end
-		return false
+		-- Left-click: toggle expand/collapse and allow selection (for side panel variables)
+		local status = (widget.status or widget.localstatus).groups
+		status[value] = not status[value]
+		widget:RefreshTree()
+		-- Fall through — tree will select this category, triggering OnGroupSelected → RefreshSidePanel
 	else
 		if button == "RightButton" then
 			if not AngryAssign_DropDown then
 				AngryAssign_DropDown = CreateFrame("Frame", "AngryAssignMenuFrame", UIParent, "UIDropDownMenuTemplate")
 			end
-			-- Template pages get a restricted menu (Duplicate only)
-			if AngryAssign:IsTemplatePage(selectedId) then
+			-- Template pages get a restricted menu
+			if AngryAssign:IsUserTemplatePage(selectedId) then
+				EasyMenu(AngryAssign_UserTemplatePageMenu(selectedId), AngryAssign_DropDown, "cursor", 0, 0, "MENU")
+			elseif AngryAssign:IsTemplatePage(selectedId) then
 				EasyMenu(AngryAssign_TemplatePageMenu(selectedId), AngryAssign_DropDown, "cursor", 0, 0, "MENU")
 			else
-				EasyMenu(AngryAssign_PageMenu(selectedId), AngryAssign_DropDown, "cursor", 0 , 0, "MENU")
+				EasyMenu(AngryAssign_PageMenu(selectedId), AngryAssign_DropDown, "cursor", 0, 0, "MENU")
 			end
 
 			return false
@@ -469,6 +516,9 @@ function AngryAssign:CreateWindow()
 	tree:SetLayout("Flow")
 	tree:SetCallback("OnGroupSelected", function(widget, event, value) AngryAssign:UpdateSelected(true) end)
 	tree:SetCallback("OnClick", AngryAssign_TreeClick)
+	tree:SetCallback("OnDragDrop", function(_, _, sourceValue, sourceUniqueValue, targetValue, targetUniqueValue, zone)
+		AngryAssign:HandleDrop(sourceValue, sourceUniqueValue, targetValue, targetUniqueValue, zone)
+	end)
 	window:AddChild(tree)
 	window.tree = tree
 
@@ -586,15 +636,17 @@ function AngryAssign:CreateWindow()
 	window.button_clear = button_clear
 
 	local toggle_panel = CreateFrame("Button", nil, window.frame, "UIPanelButtonTemplate")
-	toggle_panel:SetSize(80, 20)
+	toggle_panel:SetSize(120, 20)
 	toggle_panel:SetPoint("TOPRIGHT", window.frame, "TOPRIGHT", -20, -10)
-	toggle_panel:SetText("Tokens")
+	toggle_panel:SetText("Tokens & Variables")
 	toggle_panel:SetScript("OnClick", function()
-		if AngryAssign.tokenpanel and AngryAssign.tokenpanel.frame then
-			if AngryAssign.tokenpanel.frame:IsShown() then
-				AngryAssign.tokenpanel.frame:Hide()
+		if AngryAssign.sidepanel and AngryAssign.sidepanel.frame then
+			if AngryAssign.sidepanel.frame:IsShown() then
+				AngryAssign.sidepanel.frame:Hide()
 			else
-				AngryAssign.tokenpanel.frame:Show()
+				AngryAssign.sidepanel.frame:Show()
+				AngryAssign.sidepanel:DoLayout()
+				AngryAssign:RefreshSidePanel()
 			end
 		end
 	end)
@@ -603,5 +655,5 @@ function AngryAssign:CreateWindow()
 	self:UpdateSelected(true)
 	self:UpdateMedia()
 
-	self:CreateTokenPanel()
+	self:CreateSidePanel()
 end

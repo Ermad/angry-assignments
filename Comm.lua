@@ -17,6 +17,7 @@ local PAGE_Updated = 3
 local PAGE_Name = 4
 local PAGE_Contents = 5
 local PAGE_UpdateId = 6
+local PAGE_Variables = 7
 
 local REQUEST_PAGE_Id = 2
 
@@ -30,6 +31,7 @@ local VERSION_ValidRaid = 4
 
 local SHARE_Name = 2
 local SHARE_Contents = 3
+local SHARE_Variables = 4
 
 -- Throttling state
 local updateFrequency = 2
@@ -113,7 +115,12 @@ function AngryAssign:ProcessMessage(sender, data)
 		else
 			AngryAssign_Pages[id] = { Id = id, Updated = data[PAGE_Updated], UpdateId = data[PAGE_UpdateId], Name = data[PAGE_Name], Contents = data[PAGE_Contents] }
 		end
+		-- Store received variables if present
+		if data[PAGE_Variables] then
+			AngryAssign_Variables.pages[id] = data[PAGE_Variables]
+		end
 		if AngryAssign_State.displayed == id then
+			if contents_updated then AngryAssign_State.currentPage = 1 end
 			self:UpdateDisplayed()
 			self:ShowDisplay()
 			if contents_updated then self:DisplayUpdateNotification() end
@@ -138,6 +145,7 @@ function AngryAssign:ProcessMessage(sender, data)
 
 		if AngryAssign_State.displayed ~= id then
 			AngryAssign_State.displayed = id
+			AngryAssign_State.currentPage = 1
 			self:UpdateTree()
 			self:UpdateDisplayed()
 			self:ShowDisplay()
@@ -227,6 +235,10 @@ function AngryAssign:ProcessMessage(sender, data)
 			CategoryId = ns.SHARED_CATEGORY_ID,
 			SharedFrom = sender,
 		}
+		-- Store received variables if present
+		if data[SHARE_Variables] then
+			AngryAssign_Variables.pages[id] = data[SHARE_Variables]
+		end
 		self:UpdateTree()
 		self:Print("Received shared page: " .. sharedName)
 	end
@@ -269,7 +281,9 @@ function AngryAssign:SendPageMessage(id)
 	local page = AngryAssign_Pages[ id ]
 	if not page then error("Can't send page, does not exist"); return end
 	if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
-	self:SendOutMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents, [PAGE_UpdateId] = page.UpdateId })
+	local vars = self:GetResolvedVarsForPage(id)
+	local varsToSend = next(vars) and vars or nil
+	self:SendOutMessage({ "PAGE", [PAGE_Id] = page.Id, [PAGE_Updated] = page.Updated, [PAGE_Name] = page.Name, [PAGE_Contents] = page.Contents, [PAGE_UpdateId] = page.UpdateId, [PAGE_Variables] = varsToSend })
 end
 
 function AngryAssign:SendDisplay(id, force)
@@ -363,7 +377,9 @@ end
 function AngryAssign:SendSharePage(pageId)
 	local page = AngryAssign_Pages[pageId]
 	if not page then return end
-	self:SendOutMessage({ "SHARE", [SHARE_Name] = page.Name, [SHARE_Contents] = page.Contents })
+	local vars = self:GetResolvedVarsForPage(pageId)
+	local varsToSend = next(vars) and vars or nil
+	self:SendOutMessage({ "SHARE", [SHARE_Name] = page.Name, [SHARE_Contents] = page.Contents, [SHARE_Variables] = varsToSend })
 end
 
 function AngryAssign:GetRaidLeader(online_only)

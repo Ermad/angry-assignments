@@ -1,8 +1,8 @@
 ## Interface: 11508
 ## Title: Angry Assignments+
 ## Author: Ariailis, Ermad
-## Version: 2.0.1
-## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config
+## Version: 2.1.0
+## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config,AngryAssign_Variables
 ## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, LibDeflate, LibWindow-1.1, LibDataBroker-1.1, LibDBIcon-1.0
 
 embeds.xml
@@ -13,8 +13,10 @@ Permissions.lua
 TemplateData_TBC.lua
 Templates.lua
 Pages.lua
+Variables.lua
 Display.lua
 Window.lua
 Options.lua
 TokenPanel.lua
+VariablesPanel.lua
 Minimap.lua

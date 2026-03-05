@@ -1,3 +1,13 @@
+## v2.1.0
+
+* Page pagination: split assignments into multiple pages with {page} tokens, click display to navigate
+* Variable substitution: {$varName} tokens with category-wide and page-level scoping
+* Combined "Tokens & Variables" side panel with CC & Dispels quick-insert icons
+* Drag-and-drop reordering in the page tree with persistent sort order
+* User templates: drag pages/categories to Templates to save personal copies
+* Tree indicators for variable usage ({$} on pages, [V] on categories)
+* Variables sync to raid members with page content
+
 ## v2.0.1
 
 * Added built-in raid assignment templates, organized by raid tier and version-gated to the current game client

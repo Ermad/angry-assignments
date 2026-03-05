@@ -38,8 +38,9 @@ read_globals = {
 	"UnitName", "UnitFullName", "UnitIsGroupLeader", "UnitIsGroupAssistant",
 	"SendChatMessage", "Ambiguate",
 	"GetSpellLink", "GetSpellInfo", "GetItemInfo", "GetMacroIcons",
-	"GetBuildInfo",
+	"GetBuildInfo", "GetTime",
 	"PlaySound",
+	"GetCursorPosition", "IsMouseButtonDown",
 	"GuildRoster",
 	"EJ_GetEncounterInfo",
 
@@ -79,6 +80,7 @@ globals = {
 	"AngryAssign_Categories",
 	"AngryAssign_State",
 	"AngryAssign_Config",
+	"AngryAssign_Variables",
 
 	-- StaticPopup dialog registration
 	"StaticPopupDialogs",

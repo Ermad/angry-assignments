@@ -2,7 +2,7 @@
 TreeGroup Container
 Container that uses a tree control to switch between groups.
 -------------------------------------------------------------------------------]]
-local Type, Version = "AngryTreeGroup", 2
+local Type, Version = "AngryTreeGroup", 3
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -15,6 +15,11 @@ local select, tremove, unpack, tconcat = select, table.remove, unpack, table.con
 
 -- WoW APIs
 local CreateFrame, UIParent = CreateFrame, UIParent
+local GetCursorPosition, IsMouseButtonDown = GetCursorPosition, IsMouseButtonDown
+
+-- Drag-and-drop constants
+local DRAG_THRESHOLD_SQ = 25 -- 5 pixels squared
+local DROP_ZONE_EDGE = 0.25  -- top/bottom 25% for above/below zones
 
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
 -- List them here for Mikk's FindGlobals script
@@ -191,6 +196,8 @@ end
 
 local function Button_OnClick(frame, button)
 	local self = frame.obj
+	-- Suppress click if a drag just completed
+	if self.dragState and self.dragState.isDragging then return end
 	local result = self:Fire("OnClick", frame.uniquevalue, frame.selected, button)
 	if result ~= false and not frame.selected then
 		self:SetSelected(frame.uniquevalue)
@@ -228,6 +235,63 @@ local function Button_OnLeave(frame)
 	if self.enabletooltips then
 		GameTooltip:Hide()
 	end
+end
+
+local function DragTracker_OnUpdate(frame)
+	local self = frame.obj
+	local ds = self.dragState
+	if not ds then
+		frame:Hide()
+		return
+	end
+
+	local scale = UIParent:GetEffectiveScale()
+	local curX, curY = GetCursorPosition()
+	curX, curY = curX / scale, curY / scale
+
+	if not ds.isDragging then
+		-- Mouse released before reaching drag threshold → normal click
+		if not IsMouseButtonDown("LeftButton") then
+			self:CancelDrag()
+			return
+		end
+		local dx = curX - ds.startX
+		local dy = curY - ds.startY
+		if (dx * dx + dy * dy) > DRAG_THRESHOLD_SQ then
+			ds.isDragging = true
+			self.dragIndicator.text:SetText(ds.text)
+			self.dragIndicator:Show()
+		end
+	else
+		if not IsMouseButtonDown("LeftButton") then
+			self:CompleteDrop()
+			return
+		end
+		-- Move drag indicator with cursor
+		self.dragIndicator:ClearAllPoints()
+		self.dragIndicator:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", curX + 12, curY - 4)
+		-- Update drop target highlight
+		self:UpdateDropTarget(curX, curY)
+	end
+end
+
+local function Button_OnMouseDown(frame, mouseButton)
+	if mouseButton ~= "LeftButton" then return end
+	local self = frame.obj
+	if self.dragState then return end
+
+	local scale = UIParent:GetEffectiveScale()
+	local curX, curY = GetCursorPosition()
+	self.dragState = {
+		sourceButton = frame,
+		sourceValue = frame.value,
+		sourceUniqueValue = frame.uniquevalue,
+		text = frame.text:GetText() or "",
+		startX = curX / scale,
+		startY = curY / scale,
+		isDragging = false,
+	}
+	self.dragTracker:Show()
 end
 
 local function OnScrollValueChanged(frame, value)
@@ -315,6 +379,7 @@ local methods = {
 		self.localstatus.scrollvalue = 0
 		self.localstatus.treewidth = DEFAULT_TREE_WIDTH
 		self.localstatus.treesizable = DEFAULT_TREE_SIZABLE
+		self:CancelDrag()
 	end,
 
 	["EnableButtonTooltips"] = function(self, enable)
@@ -335,6 +400,7 @@ local methods = {
 		--button:SetScript("OnDoubleClick", Button_OnDoubleClick)
 		button:SetScript("OnEnter",Button_OnEnter)
 		button:SetScript("OnLeave",Button_OnLeave)
+		button:SetScript("OnMouseDown", Button_OnMouseDown)
 
 		button.toggle.button = button
 		button.toggle:SetScript("OnClick",Expand_OnClick)
@@ -612,6 +678,120 @@ local methods = {
 		return status.treewidth or DEFAULT_TREE_WIDTH
 	end,
 
+	["UpdateDropTarget"] = function(self, curX, curY)
+		local buttons = self.buttons
+		local ds = self.dragState
+		if not ds then return end
+
+		local bestButton, bestZone
+
+		for _, button in ipairs(buttons) do
+			if button:IsShown() and button.treeline then
+				local bLeft = button:GetLeft()
+				local bTop = button:GetTop()
+				local bBottom = button:GetBottom()
+				local bRight = button:GetRight()
+
+				if bLeft and curX >= bLeft and curX <= bRight and curY >= bBottom and curY <= bTop then
+					local height = bTop - bBottom
+					local relY = (curY - bBottom) / height
+
+					if button.treeline.hasChildren then
+						-- Category: top/bottom 25% = above/below, middle 50% = into
+						if relY > (1 - DROP_ZONE_EDGE) then
+							bestZone = "above"
+						elseif relY < DROP_ZONE_EDGE then
+							bestZone = "below"
+						else
+							bestZone = "into"
+						end
+					else
+						-- Page/leaf: top 50% = above, bottom 50% = below
+						if relY > 0.5 then
+							bestZone = "above"
+						else
+							bestZone = "below"
+						end
+					end
+					bestButton = button
+					break
+				end
+			end
+		end
+
+		-- Don't highlight source item as a drop target
+		if bestButton and bestButton.uniquevalue == ds.sourceUniqueValue then
+			bestButton = nil
+		end
+
+		-- Update visuals
+		if bestButton then
+			self.dropTarget = {
+				value = bestButton.value,
+				uniquevalue = bestButton.uniquevalue,
+				zone = bestZone,
+				button = bestButton,
+			}
+			self:UpdateDropLine(bestButton, bestZone)
+		else
+			self.dropTarget = nil
+			self.dropLine:Hide()
+			self.dropHighlight:Hide()
+		end
+	end,
+
+	["UpdateDropLine"] = function(self, button, zone)
+		local dropLine = self.dropLine
+		local dropHighlight = self.dropHighlight
+
+		if zone == "into" then
+			dropLine:Hide()
+			dropHighlight:ClearAllPoints()
+			dropHighlight:SetPoint("TOPLEFT", button, "TOPLEFT")
+			dropHighlight:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT")
+			dropHighlight:Show()
+		else
+			dropHighlight:Hide()
+			dropLine:ClearAllPoints()
+			if zone == "above" then
+				dropLine:SetPoint("LEFT", button, "TOPLEFT", 0, 0)
+				dropLine:SetPoint("RIGHT", button, "TOPRIGHT", 0, 0)
+			else
+				dropLine:SetPoint("LEFT", button, "BOTTOMLEFT", 0, 0)
+				dropLine:SetPoint("RIGHT", button, "BOTTOMRIGHT", 0, 0)
+			end
+			dropLine:Show()
+		end
+	end,
+
+	["CompleteDrop"] = function(self)
+		local ds = self.dragState
+		local dt = self.dropTarget
+
+		-- Hide visuals
+		self.dragIndicator:Hide()
+		self.dropLine:Hide()
+		self.dropHighlight:Hide()
+		self.dragTracker:Hide()
+
+		-- Fire callback if we have a valid drop target
+		if ds and dt then
+			self:Fire("OnDragDrop", ds.sourceValue, ds.sourceUniqueValue, dt.value, dt.uniquevalue, dt.zone)
+		end
+
+		self.dragState = nil
+		self.dropTarget = nil
+	end,
+
+	["CancelDrag"] = function(self)
+		self.dragIndicator:Hide()
+		self.dropLine:Hide()
+		self.dropHighlight:Hide()
+		self.dragTracker:Hide()
+		self.dragState = nil
+		self.dropTarget = nil
+	end,
+
 	["LayoutFinished"] = function(self, width, height)
 		if self.noAutoHeight then return end
 		self:SetHeight((height or 0) + 20)
@@ -700,25 +880,69 @@ local function Constructor()
 	content:SetPoint("TOPLEFT", 10, -10)
 	content:SetPoint("BOTTOMRIGHT", -10, 10)
 
+	-- Drag-and-drop frames
+	local dragTracker = CreateFrame("Frame", nil, treeframe)
+	dragTracker:Hide()
+	dragTracker:SetScript("OnUpdate", DragTracker_OnUpdate)
+
+	local dragIndicator = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+	dragIndicator:SetSize(180, 20)
+	dragIndicator:SetBackdrop({
+		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = true, tileSize = 16, edgeSize = 8,
+		insets = { left = 2, right = 2, top = 2, bottom = 2 }
+	})
+	dragIndicator:SetBackdropColor(0, 0, 0, 0.85)
+	dragIndicator:SetBackdropBorderColor(0.4, 0.6, 1, 0.8)
+	dragIndicator:SetFrameStrata("TOOLTIP")
+	dragIndicator:Hide()
+	local dragText = dragIndicator:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	dragText:SetPoint("LEFT", 4, 0)
+	dragText:SetPoint("RIGHT", -4, 0)
+	dragText:SetWordWrap(false)
+	dragIndicator.text = dragText
+
+	local dropLine = treeframe:CreateTexture(nil, "OVERLAY")
+	dropLine:SetHeight(2)
+	if IsLegion then
+		dropLine:SetColorTexture(0.3, 0.6, 1, 0.8)
+	else
+		dropLine:SetTexture(0.3, 0.6, 1, 0.8)
+	end
+	dropLine:Hide()
+
+	local dropHighlight = treeframe:CreateTexture(nil, "OVERLAY")
+	if IsLegion then
+		dropHighlight:SetColorTexture(0.3, 0.6, 1, 0.15)
+	else
+		dropHighlight:SetTexture(0.3, 0.6, 1, 0.15)
+	end
+	dropHighlight:Hide()
+
 	local widget = {
-		frame        = frame,
-		lines        = {},
-		levels       = {},
-		buttons      = {},
-		hasChildren  = {},
-		localstatus  = { groups = {}, scrollvalue = 0 },
-		filter       = false,
-		treeframe    = treeframe,
-		dragger      = dragger,
-		scrollbar    = scrollbar,
-		border       = border,
-		content      = content,
-		type         = Type
+		frame         = frame,
+		lines         = {},
+		levels        = {},
+		buttons       = {},
+		hasChildren   = {},
+		localstatus   = { groups = {}, scrollvalue = 0 },
+		filter        = false,
+		treeframe     = treeframe,
+		dragger       = dragger,
+		scrollbar     = scrollbar,
+		border        = border,
+		content       = content,
+		dragTracker   = dragTracker,
+		dragIndicator = dragIndicator,
+		dropLine      = dropLine,
+		dropHighlight = dropHighlight,
+		type          = Type
 	}
 	for method, func in pairs(methods) do
 		widget[method] = func
 	end
-	treeframe.obj, dragger.obj, scrollbar.obj = widget, widget, widget
+	treeframe.obj, dragger.obj, scrollbar.obj, dragTracker.obj = widget, widget, widget, widget
 
 	return AceGUI:RegisterAsContainer(widget)
 end

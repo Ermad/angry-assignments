@@ -195,6 +195,30 @@ function AngryAssign:CreateDisplay()
 	glow2:SetAlpha(0)
 	self.display_glow2 = glow2
 
+	-- Pagination: click on display text to change pages
+	self.display_text:EnableMouse(true)
+	self.display_text:SetScript("OnMouseUp", function(_, button)
+		local totalPages = self.totalDisplayPages or 1
+		if totalPages <= 1 then return end
+		local cp = AngryAssign_State.currentPage or 1
+		if button == "LeftButton" then
+			cp = cp + 1
+			if cp > totalPages then cp = 1 end
+		elseif button == "RightButton" then
+			cp = cp - 1
+			if cp < 1 then cp = totalPages end
+		end
+		AngryAssign_State.currentPage = cp
+		self:UpdateDisplayed()
+	end)
+
+	-- Page counter text (top-right of display frame)
+	local pageCounter = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	pageCounter:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -2)
+	pageCounter:SetTextColor(0.8, 0.8, 0.8, 0.8)
+	pageCounter:Hide()
+	self.pageCounter = pageCounter
+
 	if AngryAssign_State.display.hidden then frame:Hide() end
 	self:UpdateMedia()
 	self:UpdateDirection()
@@ -359,6 +383,30 @@ local function ci_pattern(pattern)
 	return p
 end
 
+-- Split text on {page} tokens (case-insensitive). Returns an array of page strings.
+local page_split_pattern = ci_pattern("{page}")
+local function SplitPages(text)
+	local pages = {}
+	local pos = 1
+	while true do
+		local s, e = text:find(page_split_pattern, pos)
+		if not s then
+			table.insert(pages, text:sub(pos))
+			break
+		end
+		table.insert(pages, text:sub(pos, s - 1))
+		pos = e + 1
+	end
+	-- Trim empty trailing pages
+	while #pages > 0 and pages[#pages]:match("^%s*$") do
+		table.remove(pages)
+	end
+	if #pages == 0 then
+		table.insert(pages, text)
+	end
+	return pages
+end
+
 function AngryAssign:UpdateDisplayedIfNewGroup()
 	local newGroup = self:GetCurrentGroup()
 	if newGroup ~= currentGroup then
@@ -372,10 +420,38 @@ function AngryAssign:ResetCurrentGroup()
 	currentGroup = nil
 end
 
+function AngryAssign:UpdatePageCounter(totalPages)
+	self.totalDisplayPages = totalPages
+	if totalPages > 1 then
+		local cp = AngryAssign_State.currentPage or 1
+		self.pageCounter:SetText(format("(%d/%d)", cp, totalPages))
+		self.pageCounter:Show()
+	else
+		self.pageCounter:Hide()
+	end
+end
+
 function AngryAssign:UpdateDisplayed()
 	local page = self:Get( AngryAssign_State.displayed )
 	if page then
 		local text = page.Contents
+
+		-- Variable substitution (before pagination and built-in token processing)
+		text = self:ResolveVariables(page.Id, text)
+
+		-- Pagination: split on {page} tokens
+		local pages = SplitPages(text)
+		local totalPages = #pages
+		if totalPages > 1 then
+			local cp = AngryAssign_State.currentPage or 1
+			if cp < 1 then cp = 1 end
+			if cp > totalPages then cp = totalPages end
+			AngryAssign_State.currentPage = cp
+			text = pages[cp]
+		else
+			AngryAssign_State.currentPage = 1
+		end
+		self:UpdatePageCounter(totalPages)
 
 		local highlights = { }
 		for token in string.gmatch( AngryAssign:GetConfig('highlight') , "[^%s%p]+") do
@@ -435,6 +511,13 @@ function AngryAssign:UpdateDisplayed()
 				return format("|T%s:0|t", select(3, GetSpellInfo(tonumber(id))) )
 			end)
 			:gsub(ci_pattern('{icon%s+([%w_]+)}'), "|TInterface\\Icons\\%1:0|t")
+			:gsub(ci_pattern('{name%s+(%S+)%s+(%u+)}'), function(name, class)
+				local color = RAID_CLASS_COLORS[class]
+				if color then
+					return format("|cff%02x%02x%02x%s|r", color.r * 255, color.g * 255, color.b * 255, name)
+				end
+				return name
+			end)
 			:gsub(ci_pattern('{damage}'), "{dps}")
 			:gsub(ci_pattern('{tank}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:0:19:22:41|t")
 			:gsub(ci_pattern('{healer}'), "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:0:0:0:0:64:64:20:39:1:20|t")
@@ -509,6 +592,7 @@ function AngryAssign:UpdateDisplayed()
 		end
 	else
 		self.display_text:Clear()
+		self:UpdatePageCounter(1)
 		if not AngryAssign_State.display.hidden then
 			self.display_text:AddMessage("|cff666666No assignment displayed.|r")
 			self.display_text:AddMessage("|cff666666Use /aa window to create and display a page.|r")
@@ -540,6 +624,18 @@ function AngryAssign:OutputDisplayed(id)
 	end
 	if channel and page then
 		local output = page.Contents
+
+		-- Variable substitution
+		output = self:ResolveVariables(page.Id, output)
+
+		-- Respect pagination for output
+		local outputPages = SplitPages(output)
+		if #outputPages > 1 then
+			local cp = AngryAssign_State.currentPage or 1
+			if cp < 1 then cp = 1 end
+			if cp > #outputPages then cp = #outputPages end
+			output = outputPages[cp]
+		end
 
 		output = output:gsub(ci_pattern('|cblue'), "")
 			:gsub(ci_pattern('|cgreen'), "")
@@ -576,6 +672,7 @@ function AngryAssign:OutputDisplayed(id)
 			:gsub(ci_pattern('{healthstone}'), "{hs}")
 			:gsub(ci_pattern('{hs}'), 'Healthstone')
 			:gsub(ci_pattern('{icon%s+([%w_]+)}'), '')
+			:gsub(ci_pattern('{name%s+(%S+)%s+%u+}'), '%1')
 			:gsub(ci_pattern('{damage}'), 'Damage')
 			:gsub(ci_pattern('{tank}'), 'Tanks')
 			:gsub(ci_pattern('{healer}'), 'Healers')

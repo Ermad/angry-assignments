@@ -81,14 +81,103 @@ end
 
 BuildTemplates()
 
+-- User template constants
+local USER_TEMPLATE_PAGE_BASE = 2147300000
+local USER_TEMPLATE_CAT_BASE  = 2147350000
+
 function AngryAssign:IsTemplatePage(id)
-	return ns.templatePageIds[id] == true
+	if ns.templatePageIds[id] then return true end
+	if AngryAssign_State.userTemplates and AngryAssign_State.userTemplates.pages[id] then return true end
+	return false
 end
 
 function AngryAssign:IsTemplateCategory(treeValue)
-	return ns.templateCatIds[treeValue] == true
+	if ns.templateCatIds[treeValue] then return true end
+	if treeValue and AngryAssign_State.userTemplates and AngryAssign_State.userTemplates.categories[-treeValue] then return true end
+	return false
 end
 
 function AngryAssign:GetTemplatePage(id)
-	return ns.templatePages[id]
+	return ns.templatePages[id] or (AngryAssign_State.userTemplates and AngryAssign_State.userTemplates.pages[id])
+end
+
+function AngryAssign:IsUserTemplatePage(id)
+	return AngryAssign_State.userTemplates and AngryAssign_State.userTemplates.pages[id] ~= nil
+end
+
+function AngryAssign:IsUserTemplateCat(catId)
+	return AngryAssign_State.userTemplates and AngryAssign_State.userTemplates.categories[catId] ~= nil
+end
+
+local function NextUserTemplatePageId()
+	local id = USER_TEMPLATE_PAGE_BASE
+	local pages = AngryAssign_State.userTemplates and AngryAssign_State.userTemplates.pages
+	if pages then
+		while pages[id] do id = id + 1 end
+	end
+	return id
+end
+
+function AngryAssign:CopyToUserTemplate(sourceValue)
+	local ut = AngryAssign_State.userTemplates
+	if not ut then return end
+
+	if sourceValue > 0 then
+		local source = self:Get(sourceValue)
+		if not source then return end
+		local id = NextUserTemplatePageId()
+		ut.pages[id] = {
+			Id = id,
+			Name = source.Name,
+			Contents = source.Contents,
+		}
+	else
+		local catId = -sourceValue
+		local cat = AngryAssign_Categories[catId]
+		if not cat then return end
+
+		local newCatId = USER_TEMPLATE_CAT_BASE
+		while ut.categories[newCatId] do newCatId = newCatId + 1 end
+
+		local pages = self:GetCategoryPages(catId)
+		for _, page in ipairs(pages) do
+			local newPageId = NextUserTemplatePageId()
+			ut.pages[newPageId] = {
+				Id = newPageId,
+				Name = page.Name,
+				Contents = page.Contents,
+				CategoryId = newCatId,
+			}
+		end
+
+		ut.categories[newCatId] = {
+			Id = newCatId,
+			Name = cat.Name,
+		}
+	end
+
+	self:UpdateTree()
+end
+
+function AngryAssign:DeleteUserTemplatePage(id)
+	local ut = AngryAssign_State.userTemplates
+	if not ut or not ut.pages[id] then return end
+	ut.pages[id] = nil
+	if self.window and self:SelectedId() == id then
+		self:SetSelectedId(nil)
+		self:UpdateSelected(true)
+	end
+	self:UpdateTree()
+end
+
+function AngryAssign:DeleteUserTemplateCat(catId)
+	local ut = AngryAssign_State.userTemplates
+	if not ut or not ut.categories[catId] then return end
+	for pageId, page in pairs(ut.pages) do
+		if page.CategoryId == catId then
+			ut.pages[pageId] = nil
+		end
+	end
+	ut.categories[catId] = nil
+	self:UpdateTree()
 end
