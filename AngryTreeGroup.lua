@@ -2,7 +2,7 @@
 TreeGroup Container
 Container that uses a tree control to switch between groups.
 -------------------------------------------------------------------------------]]
-local Type, Version = "AngryTreeGroup", 2
+local Type, Version = "AngryTreeGroup", 3
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -15,6 +15,11 @@ local select, tremove, unpack, tconcat = select, table.remove, unpack, table.con
 
 -- WoW APIs
 local CreateFrame, UIParent = CreateFrame, UIParent
+local GetCursorPosition, IsMouseButtonDown = GetCursorPosition, IsMouseButtonDown
+
+-- Drag-and-drop constants
+local DRAG_THRESHOLD_SQ = 25 -- 5 pixels squared
+local DROP_ZONE_EDGE = 0.25  -- top/bottom 25% for above/below zones
 
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
 -- List them here for Mikk's FindGlobals script
@@ -36,7 +41,7 @@ do
 	function del(t)
 		for k in pairs(t) do
 			t[k] = nil
-		end	
+		end
 		pool[t] = true
 	end
 end
@@ -59,7 +64,6 @@ end
 local function UpdateButton(button, treeline, selected, canExpand, isExpanded)
 	local self = button.obj
 	local toggle = button.toggle
-	local frame = self.frame
 	local text = treeline.text or ""
 	local icon = treeline.icon
 	local iconCoords = treeline.iconCoords
@@ -67,7 +71,7 @@ local function UpdateButton(button, treeline, selected, canExpand, isExpanded)
 	local value = treeline.value
 	local uniquevalue = treeline.uniquevalue
 	local disabled = treeline.disabled
-	
+
 	button.treeline = treeline
 	button.value = value
 	button.uniquevalue = uniquevalue
@@ -78,15 +82,14 @@ local function UpdateButton(button, treeline, selected, canExpand, isExpanded)
 		button:UnlockHighlight()
 		button.selected = false
 	end
-	local normalTexture = button:GetNormalTexture()
-	local line = button.line
+	button:GetNormalTexture()
 	button.level = level
 	if ( level == 1 ) then
 		button.text:SetPoint("LEFT", (icon and 16 or 0) + 8, 2)
 	else
 		button.text:SetPoint("LEFT", (icon and 16 or 0) + 8 * level, 2)
 	end
-	
+
 	if disabled then
 		button:EnableMouse(false)
 		button.text:SetText("|cff808080"..text..FONT_COLOR_CODE_CLOSE)
@@ -94,20 +97,20 @@ local function UpdateButton(button, treeline, selected, canExpand, isExpanded)
 		button.text:SetText(text)
 		button:EnableMouse(true)
 	end
-	
+
 	if icon then
 		button.icon:SetTexture(icon)
 		button.icon:SetPoint("LEFT", 8 * level, (level == 1) and 0 or 1)
 	else
 		button.icon:SetTexture(nil)
 	end
-	
+
 	if iconCoords then
 		button.icon:SetTexCoord(unpack(iconCoords))
 	else
 		button.icon:SetTexCoord(0, 1, 0, 1)
 	end
-	
+
 	if canExpand or level == 1 then
 		button:SetNormalFontObject("GameFontNormal")
 		button:SetHighlightFontObject("GameFontHighlight")
@@ -132,7 +135,7 @@ end
 
 local function ShouldDisplayLevel(tree)
 	local result = false
-	for k, v in ipairs(tree) do
+	for _, v in ipairs(tree) do
 		if v.children == nil and v.visible ~= false then
 			result = true
 		elseif v.children then
@@ -193,6 +196,8 @@ end
 
 local function Button_OnClick(frame, button)
 	local self = frame.obj
+	-- Suppress click if a drag just completed
+	if self.dragState and self.dragState.isDragging then return end
 	local result = self:Fire("OnClick", frame.uniquevalue, frame.selected, button)
 	if result ~= false and not frame.selected then
 		self:SetSelected(frame.uniquevalue)
@@ -203,11 +208,10 @@ local function Button_OnClick(frame, button)
 	AceGUI:ClearFocus()
 end
 
-local function Button_OnDoubleClick(button)
+local function Button_OnDoubleClick(button) -- luacheck: ignore 211 (unused, kept for future use)
 	local self = button.obj
-	local status = self.status or self.localstatus
-	local status = (self.status or self.localstatus).groups
-	status[button.uniquevalue] = not status[button.uniquevalue]
+	local groups = (self.status or self.localstatus).groups
+	groups[button.uniquevalue] = not groups[button.uniquevalue]
 	self:RefreshTree()
 end
 
@@ -231,6 +235,63 @@ local function Button_OnLeave(frame)
 	if self.enabletooltips then
 		GameTooltip:Hide()
 	end
+end
+
+local function DragTracker_OnUpdate(frame)
+	local self = frame.obj
+	local ds = self.dragState
+	if not ds then
+		frame:Hide()
+		return
+	end
+
+	local scale = UIParent:GetEffectiveScale()
+	local curX, curY = GetCursorPosition()
+	curX, curY = curX / scale, curY / scale
+
+	if not ds.isDragging then
+		-- Mouse released before reaching drag threshold → normal click
+		if not IsMouseButtonDown("LeftButton") then
+			self:CancelDrag()
+			return
+		end
+		local dx = curX - ds.startX
+		local dy = curY - ds.startY
+		if (dx * dx + dy * dy) > DRAG_THRESHOLD_SQ then
+			ds.isDragging = true
+			self.dragIndicator.text:SetText(ds.text)
+			self.dragIndicator:Show()
+		end
+	else
+		if not IsMouseButtonDown("LeftButton") then
+			self:CompleteDrop()
+			return
+		end
+		-- Move drag indicator with cursor
+		self.dragIndicator:ClearAllPoints()
+		self.dragIndicator:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", curX + 12, curY - 4)
+		-- Update drop target highlight
+		self:UpdateDropTarget(curX, curY)
+	end
+end
+
+local function Button_OnMouseDown(frame, mouseButton)
+	if mouseButton ~= "LeftButton" then return end
+	local self = frame.obj
+	if self.dragState then return end
+
+	local scale = UIParent:GetEffectiveScale()
+	local curX, curY = GetCursorPosition()
+	self.dragState = {
+		sourceButton = frame,
+		sourceValue = frame.value,
+		sourceUniqueValue = frame.uniquevalue,
+		text = frame.text:GetText() or "",
+		startX = curX / scale,
+		startY = curY / scale,
+		isDragging = false,
+	}
+	self.dragTracker:Show()
 end
 
 local function OnScrollValueChanged(frame, value)
@@ -275,18 +336,18 @@ end
 local function Dragger_OnMouseUp(frame)
 	local treeframe = frame:GetParent()
 	local self = treeframe.obj
-	local frame = treeframe:GetParent()
+	local parentframe = treeframe:GetParent()
 	treeframe:StopMovingOrSizing()
 	--treeframe:SetScript("OnUpdate", nil)
 	treeframe:SetUserPlaced(false)
 	--Without this :GetHeight will get stuck on the current height, causing the tree contents to not resize
 	treeframe:SetHeight(0)
-	treeframe:SetPoint("TOPLEFT", frame, "TOPLEFT",0,0)
-	treeframe:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT",0,0)
-	
+	treeframe:SetPoint("TOPLEFT", parentframe, "TOPLEFT",0,0)
+	treeframe:SetPoint("BOTTOMLEFT", parentframe, "BOTTOMLEFT",0,0)
+
 	local status = self.status or self.localstatus
 	status.treewidth = treeframe:GetWidth()
-	
+
 	treeframe.obj:Fire("OnTreeResize",treeframe:GetWidth())
 	-- recalculate the content width
 	treeframe.obj:OnWidthSet(status.fullwidth)
@@ -318,6 +379,7 @@ local methods = {
 		self.localstatus.scrollvalue = 0
 		self.localstatus.treewidth = DEFAULT_TREE_WIDTH
 		self.localstatus.treesizable = DEFAULT_TREE_SIZABLE
+		self:CancelDrag()
 	end,
 
 	["EnableButtonTooltips"] = function(self, enable)
@@ -338,6 +400,7 @@ local methods = {
 		--button:SetScript("OnDoubleClick", Button_OnDoubleClick)
 		button:SetScript("OnEnter",Button_OnEnter)
 		button:SetScript("OnLeave",Button_OnLeave)
+		button:SetScript("OnMouseDown", Button_OnMouseDown)
 
 		button.toggle.button = button
 		button.toggle:SetScript("OnClick",Expand_OnClick)
@@ -369,8 +432,8 @@ local methods = {
 	--sets the tree to be displayed
 	["SetTree"] = function(self, tree, filter)
 		self.filter = filter
-		if tree then 
-			assert(type(tree) == "table") 
+		if tree then
+			assert(type(tree) == "table")
 		end
 		self.tree = tree
 		self:RefreshTree()
@@ -378,9 +441,8 @@ local methods = {
 
 	["BuildLevel"] = function(self, tree, level, parent)
 		local groups = (self.status or self.localstatus).groups
-		local hasChildren = self.hasChildren
-		
-		for i, v in ipairs(tree) do
+
+		for _, v in ipairs(tree) do
 			if v.children then
 				if not self.filter or ShouldDisplayLevel(v.children) then
 					local line = addLine(self, v, tree, level, parent)
@@ -395,10 +457,10 @@ local methods = {
 	end,
 
 	["RefreshTree"] = function(self,scrollToSelection)
-		local buttons = self.buttons 
+		local buttons = self.buttons
 		local lines = self.lines
 
-		for i, v in ipairs(buttons) do
+		for _, v in ipairs(buttons) do
 			v:Hide()
 		end
 		while lines[1] do
@@ -416,7 +478,7 @@ local methods = {
 		local tree = self.tree
 
 		local treeframe = self.treeframe
-		
+
 		status.scrollToSelection = status.scrollToSelection or scrollToSelection	-- needs to be cached in case the control hasn't been drawn yet (code bails out below)
 
 		self:BuildLevel(tree, 1)
@@ -427,7 +489,7 @@ local methods = {
 		if maxlines <= 0 then return end
 
 		local first, last
-		
+
 		scrollToSelection = status.scrollToSelection
 		status.scrollToSelection = nil
 
@@ -486,12 +548,13 @@ local methods = {
 				button:SetFrameLevel(treeframe:GetFrameLevel()+1)
 				button:ClearAllPoints()
 				if buttonnum == 1 then
+					local topOffset = self.treeTopOffset or -10
 					if self.showscroll then
-						button:SetPoint("TOPRIGHT", -22, -10)
-						button:SetPoint("TOPLEFT", 0, -10)
+						button:SetPoint("TOPRIGHT", -22, topOffset)
+						button:SetPoint("TOPLEFT", 0, topOffset)
 					else
-						button:SetPoint("TOPRIGHT", 0, -10)
-						button:SetPoint("TOPLEFT", 0, -10)
+						button:SetPoint("TOPRIGHT", 0, topOffset)
+						button:SetPoint("TOPLEFT", 0, topOffset)
 					end
 				else
 					button:SetPoint("TOPRIGHT", buttons[buttonnum-1], "BOTTOMRIGHT",0,0)
@@ -503,9 +566,9 @@ local methods = {
 			button:Show()
 			buttonnum = buttonnum + 1
 		end
-		
+
 	end,
-	
+
 	["SetSelected"] = function(self, value)
 		local status = self.status or self.localstatus
 		if status.selected ~= value then
@@ -555,16 +618,16 @@ local methods = {
 		local treeframe = self.treeframe
 		local status = self.status or self.localstatus
 		status.fullwidth = width
-		
+
 		local contentwidth = width - status.treewidth - 20
 		if contentwidth < 0 then
 			contentwidth = 0
 		end
 		content:SetWidth(contentwidth)
 		content.width = contentwidth
-		
+
 		local maxtreewidth = math_min(400, width - 50)
-		
+
 		if maxtreewidth > 100 and status.treewidth > maxtreewidth then
 			self:SetTreeWidth(maxtreewidth, status.treesizable)
 		end
@@ -594,16 +657,16 @@ local methods = {
 				treewidth = DEFAULT_TREE_WIDTH
 			else
 				resizable = false
-				treewidth = DEFAULT_TREE_WIDTH 
+				treewidth = DEFAULT_TREE_WIDTH
 			end
 		end
 		self.treeframe:SetWidth(treewidth)
 		self.dragger:EnableMouse(resizable)
-		
+
 		local status = self.status or self.localstatus
 		status.treewidth = treewidth
 		status.treesizable = resizable
-		
+
 		-- recalculate the content width
 		if status.fullwidth then
 			self:OnWidthSet(status.fullwidth)
@@ -613,6 +676,120 @@ local methods = {
 	["GetTreeWidth"] = function(self)
 		local status = self.status or self.localstatus
 		return status.treewidth or DEFAULT_TREE_WIDTH
+	end,
+
+	["UpdateDropTarget"] = function(self, curX, curY)
+		local buttons = self.buttons
+		local ds = self.dragState
+		if not ds then return end
+
+		local bestButton, bestZone
+
+		for _, button in ipairs(buttons) do
+			if button:IsShown() and button.treeline then
+				local bLeft = button:GetLeft()
+				local bTop = button:GetTop()
+				local bBottom = button:GetBottom()
+				local bRight = button:GetRight()
+
+				if bLeft and curX >= bLeft and curX <= bRight and curY >= bBottom and curY <= bTop then
+					local height = bTop - bBottom
+					local relY = (curY - bBottom) / height
+
+					if button.treeline.hasChildren then
+						-- Category: top/bottom 25% = above/below, middle 50% = into
+						if relY > (1 - DROP_ZONE_EDGE) then
+							bestZone = "above"
+						elseif relY < DROP_ZONE_EDGE then
+							bestZone = "below"
+						else
+							bestZone = "into"
+						end
+					else
+						-- Page/leaf: top 50% = above, bottom 50% = below
+						if relY > 0.5 then
+							bestZone = "above"
+						else
+							bestZone = "below"
+						end
+					end
+					bestButton = button
+					break
+				end
+			end
+		end
+
+		-- Don't highlight source item as a drop target
+		if bestButton and bestButton.uniquevalue == ds.sourceUniqueValue then
+			bestButton = nil
+		end
+
+		-- Update visuals
+		if bestButton then
+			self.dropTarget = {
+				value = bestButton.value,
+				uniquevalue = bestButton.uniquevalue,
+				zone = bestZone,
+				button = bestButton,
+			}
+			self:UpdateDropLine(bestButton, bestZone)
+		else
+			self.dropTarget = nil
+			self.dropLine:Hide()
+			self.dropHighlight:Hide()
+		end
+	end,
+
+	["UpdateDropLine"] = function(self, button, zone)
+		local dropLine = self.dropLine
+		local dropHighlight = self.dropHighlight
+
+		if zone == "into" then
+			dropLine:Hide()
+			dropHighlight:ClearAllPoints()
+			dropHighlight:SetPoint("TOPLEFT", button, "TOPLEFT")
+			dropHighlight:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT")
+			dropHighlight:Show()
+		else
+			dropHighlight:Hide()
+			dropLine:ClearAllPoints()
+			if zone == "above" then
+				dropLine:SetPoint("LEFT", button, "TOPLEFT", 0, 0)
+				dropLine:SetPoint("RIGHT", button, "TOPRIGHT", 0, 0)
+			else
+				dropLine:SetPoint("LEFT", button, "BOTTOMLEFT", 0, 0)
+				dropLine:SetPoint("RIGHT", button, "BOTTOMRIGHT", 0, 0)
+			end
+			dropLine:Show()
+		end
+	end,
+
+	["CompleteDrop"] = function(self)
+		local ds = self.dragState
+		local dt = self.dropTarget
+
+		-- Hide visuals
+		self.dragIndicator:Hide()
+		self.dropLine:Hide()
+		self.dropHighlight:Hide()
+		self.dragTracker:Hide()
+
+		-- Fire callback if we have a valid drop target
+		if ds and dt then
+			self:Fire("OnDragDrop", ds.sourceValue, ds.sourceUniqueValue, dt.value, dt.uniquevalue, dt.zone)
+		end
+
+		self.dragState = nil
+		self.dropTarget = nil
+	end,
+
+	["CancelDrag"] = function(self)
+		self.dragIndicator:Hide()
+		self.dropLine:Hide()
+		self.dropHighlight:Hide()
+		self.dragTracker:Hide()
+		self.dragState = nil
+		self.dropTarget = nil
 	end,
 
 	["LayoutFinished"] = function(self, width, height)
@@ -703,25 +880,69 @@ local function Constructor()
 	content:SetPoint("TOPLEFT", 10, -10)
 	content:SetPoint("BOTTOMRIGHT", -10, 10)
 
+	-- Drag-and-drop frames
+	local dragTracker = CreateFrame("Frame", nil, treeframe)
+	dragTracker:Hide()
+	dragTracker:SetScript("OnUpdate", DragTracker_OnUpdate)
+
+	local dragIndicator = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+	dragIndicator:SetSize(180, 20)
+	dragIndicator:SetBackdrop({
+		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = true, tileSize = 16, edgeSize = 8,
+		insets = { left = 2, right = 2, top = 2, bottom = 2 }
+	})
+	dragIndicator:SetBackdropColor(0, 0, 0, 0.85)
+	dragIndicator:SetBackdropBorderColor(0.4, 0.6, 1, 0.8)
+	dragIndicator:SetFrameStrata("TOOLTIP")
+	dragIndicator:Hide()
+	local dragText = dragIndicator:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	dragText:SetPoint("LEFT", 4, 0)
+	dragText:SetPoint("RIGHT", -4, 0)
+	dragText:SetWordWrap(false)
+	dragIndicator.text = dragText
+
+	local dropLine = treeframe:CreateTexture(nil, "OVERLAY")
+	dropLine:SetHeight(2)
+	if IsLegion then
+		dropLine:SetColorTexture(0.3, 0.6, 1, 0.8)
+	else
+		dropLine:SetTexture(0.3, 0.6, 1, 0.8)
+	end
+	dropLine:Hide()
+
+	local dropHighlight = treeframe:CreateTexture(nil, "OVERLAY")
+	if IsLegion then
+		dropHighlight:SetColorTexture(0.3, 0.6, 1, 0.15)
+	else
+		dropHighlight:SetTexture(0.3, 0.6, 1, 0.15)
+	end
+	dropHighlight:Hide()
+
 	local widget = {
-		frame        = frame,
-		lines        = {},
-		levels       = {},
-		buttons      = {},
-		hasChildren  = {},
-		localstatus  = { groups = {}, scrollvalue = 0 },
-		filter       = false,
-		treeframe    = treeframe,
-		dragger      = dragger,
-		scrollbar    = scrollbar,
-		border       = border,
-		content      = content,
-		type         = Type
+		frame         = frame,
+		lines         = {},
+		levels        = {},
+		buttons       = {},
+		hasChildren   = {},
+		localstatus   = { groups = {}, scrollvalue = 0 },
+		filter        = false,
+		treeframe     = treeframe,
+		dragger       = dragger,
+		scrollbar     = scrollbar,
+		border        = border,
+		content       = content,
+		dragTracker   = dragTracker,
+		dragIndicator = dragIndicator,
+		dropLine      = dropLine,
+		dropHighlight = dropHighlight,
+		type          = Type
 	}
 	for method, func in pairs(methods) do
 		widget[method] = func
 	end
-	treeframe.obj, dragger.obj, scrollbar.obj = widget, widget, widget
+	treeframe.obj, dragger.obj, scrollbar.obj, dragTracker.obj = widget, widget, widget, widget
 
 	return AceGUI:RegisterAsContainer(widget)
 end

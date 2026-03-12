@@ -1,10 +1,22 @@
-## Interface: 110002
-## Title: Angry Assignments
-## Author: Ermad
-## Version: @project-version@
-## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config
-## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, LibCompress, LibWindow-1.1
+## Interface: 120001
+## Title: Angry Assignments+
+## Author: Ariailis, Ermad
+## Version: 2.1.1
+## SavedVariables: AngryAssign_Pages,AngryAssign_Categories,AngryAssign_State,AngryAssign_Config,AngryAssign_Variables
+## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, LibDeflate, LibWindow-1.1, LibDataBroker-1.1, LibDBIcon-1.0
 
 embeds.xml
 
 Core.lua
+Comm.lua
+Permissions.lua
+TemplateData_TBC.lua
+Templates.lua
+Pages.lua
+Variables.lua
+Display.lua
+Window.lua
+Options.lua
+TokenPanel.lua
+VariablesPanel.lua
+Minimap.lua

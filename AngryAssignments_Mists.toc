@@ -1,4 +1,4 @@
-## Interface: 38000
+## Interface: 50503
 ## Title: Angry Assignments+
 ## Author: Ariailis, Ermad
 ## Version: 2.1.1
