@@ -44,7 +44,7 @@ local warnedPermission = false
 
 local currentGroup = nil
 
--- Pages Saved Variable Format 
+-- Pages Saved Variable Format
 -- 	AngryAssign_Pages = {
 -- 		[Id] = { Id = 1231, Updated = time(), UpdateId = self:Hash(name, contents), Name = "Name", Contents = "...", Backup = "...", CategoryId = 123 },
 --		...
@@ -186,13 +186,13 @@ end
 
 function AngryAssign:ReceiveMessage(prefix, data, channel, sender)
 	if prefix ~= comPrefix then return end
-	
+
 	local one = libCE:Decode(data) -- Decode the compressed data
-	
+
 	local two, message = libC:Decompress(one) -- Decompress the decoded data
-	
+
 	if not two then error("Error decompressing: " .. message); return end
-	
+
 	local success, final = libS:Deserialize(two) -- Deserialize the decompressed data
 	if not success then error("Error deserializing " .. final); return end
 
@@ -223,7 +223,7 @@ end
 function AngryAssign:ProcessMessage(sender, data)
 	local cmd = data[COMMAND]
 	sender = EnsureUnitFullName(sender)
-	
+
 	-- self:Print("Received "..data[COMMAND].." from "..sender)
 	if cmd == "PAGE" then
 		if sender == PlayerFullName() then return end
@@ -273,7 +273,7 @@ function AngryAssign:ProcessMessage(sender, data)
 		if id and not sameVersion then
 			self:SendRequestPage(id, sender)
 		end
-		
+
 		if AngryAssign_State.displayed ~= id then
 			AngryAssign_State.displayed = id
 			self:UpdateTree()
@@ -290,15 +290,15 @@ function AngryAssign:ProcessMessage(sender, data)
 
 	elseif cmd == "REQUEST_PAGE" then
 		if sender == PlayerFullName() then return end
-		
+
 		self:SendPage( data[REQUEST_PAGE_Id] )
 
 
 	elseif cmd == "VER_QUERY" then
-		
+
 		self:SendVersion()
-		
-		
+
+
 	elseif cmd == "VERSION" then
 		local ver, timestamp
 		ver = tostring(data[VERSION_Version])
@@ -370,7 +370,7 @@ end
 function AngryAssign:SendPageMessage(id)
 	pageLastUpdate[id] = time()
 	pageTimerId[id] = nil
-	
+
 	local page = AngryAssign_Pages[ id ]
 	if not page then error("Can't send page, does not exist"); return end
 	if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
@@ -399,13 +399,13 @@ end
 function AngryAssign:SendDisplayMessage(id)
 	displayLastUpdate = time()
 	displayTimerId = nil
-	
+
 	local page = AngryAssign_Pages[ id ]
 	if not page then
-		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil }) 
+		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = nil, [DISPLAY_Updated] = nil, [DISPLAY_UpdateId] = nil })
 	else
 		if not page.UpdateId then page.UpdateId = self:Hash(page.Name, page.Contents) end
-		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId }) 
+		self:SendOutMessage({ "DISPLAY", [DISPLAY_Id] = page.Id, [DISPLAY_Updated] = page.Updated, [DISPLAY_UpdateId] = page.UpdateId })
 	end
 end
 
@@ -493,10 +493,10 @@ function AngryAssign:VersionCheckOutput()
 	local invalid_raid = {}
 	local different_version = {}
 	local up_to_date = {}
-	
+
 	local ver = AngryAssign_Version
 	if ver:sub(1,1) == "@" then ver = "dev" end
-	
+
 	if (IsInRaid() or IsInGroup()) then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, _, _, _, _, _, online = GetRaidRosterInfo(i)
@@ -514,20 +514,20 @@ function AngryAssign:VersionCheckOutput()
 			end
 		end
 	end
-	
+
 	self:Print("Version check results:")
 	if #up_to_date > 0 then
 		print(LIGHTYELLOW_FONT_COLOR_CODE.."Same version:|r "..table.concat(up_to_date, ", "))
 	end
-	
+
 	if #different_version > 0 then
 		print(LIGHTYELLOW_FONT_COLOR_CODE.."Different version:|r "..table.concat(different_version, ", "))
 	end
-	
+
 	if #invalid_raid > 0 then
 		print(LIGHTYELLOW_FONT_COLOR_CODE.."Not allowing changes:|r "..table.concat(invalid_raid, ", "))
 	end
-	
+
 	if #missing_addon > 0 then
 		print(LIGHTYELLOW_FONT_COLOR_CODE.."Missing addon:|r "..table.concat(missing_addon, ", "))
 	end
@@ -539,10 +539,10 @@ end
 
 function AngryAssign_ToggleWindow()
 	if not AngryAssign.window then AngryAssign:CreateWindow() end
-	if AngryAssign.window:IsShown() then 
-		AngryAssign.window:Hide() 
+	if AngryAssign.window:IsShown() then
+		AngryAssign.window:Hide()
 	else
-		AngryAssign.window:Show() 
+		AngryAssign.window:Show()
 	end
 end
 
@@ -556,18 +556,21 @@ local function AngryAssign_AddPage(widget, event, value)
 		StaticPopupDialogs[popup_name] = {
 			button1 = OKAY,
 			button2 = CANCEL,
+			--- @param self StaticPopupTemplate
 			OnAccept = function(self)
-				local text = self.editBox:GetText()
+				local text = self:GetEditBox():GetText()
 				if text ~= "" then AngryAssign:CreatePage(text) end
 			end,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEnterPressed = function(self)
-				local text = self:GetParent().editBox:GetText()
+				local text = self:GetText()
 				if text ~= "" then AngryAssign:CreatePage(text) end
 				self:GetParent():Hide()
 			end,
 			text = "New page name:",
 			hasEditBox = true,
 			whileDead = true,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
 			hideOnEscape = true,
 			preferredIndex = 3
@@ -585,20 +588,24 @@ local function AngryAssign_RenamePage(pageId)
 		StaticPopupDialogs[popup_name] = {
 			button1 = OKAY,
 			button2 = CANCEL,
+			--- @param self StaticPopupTemplate
 			OnAccept = function(self)
-				local text = self.editBox:GetText()
+				local text = self:GetEditBox():GetText()
 				AngryAssign:RenamePage(page.Id, text)
 			end,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEnterPressed = function(self)
-				local text = self:GetParent().editBox:GetText()
+				local text = self:GetText()
 				AngryAssign:RenamePage(page.Id, text)
 				self:GetParent():Hide()
 			end,
+			--- @param self StaticPopupTemplate
 			OnShow = function(self)
-				self.editBox:SetText(page.Name)
+				self:GetEditBox():SetText(page.Name)
 			end,
 			whileDead = true,
 			hasEditBox = true,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
 			hideOnEscape = true,
 			preferredIndex = 3
@@ -637,18 +644,21 @@ local function AngryAssign_AddCategory(widget, event, value)
 		StaticPopupDialogs[popup_name] = {
 			button1 = OKAY,
 			button2 = CANCEL,
+			--- @param self StaticPopupTemplate
 			OnAccept = function(self)
-				local text = self.editBox:GetText()
+				local text = self:GetEditBox():GetText()
 				if text ~= "" then AngryAssign:CreateCategory(text) end
 			end,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEnterPressed = function(self)
-				local text = self:GetParent().editBox:GetText()
+				local text = self:GetText()
 				if text ~= "" then AngryAssign:CreateCategory(text) end
 				self:GetParent():Hide()
 			end,
 			text = "New category name:",
 			hasEditBox = true,
 			whileDead = true,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
 			hideOnEscape = true,
 			preferredIndex = 3
@@ -666,20 +676,24 @@ local function AngryAssign_RenameCategory(catId)
 		StaticPopupDialogs[popup_name] = {
 			button1 = OKAY,
 			button2 = CANCEL,
+			--- @param self StaticPopupTemplate
 			OnAccept = function(self)
-				local text = self.editBox:GetText()
+				local text = self:GetEditBox():GetText()
 				AngryAssign:RenameCategory(cat.Id, text)
 			end,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEnterPressed = function(self)
-				local text = self:GetParent().editBox:GetText()
+				local text = self:GetText()
 				AngryAssign:RenameCategory(cat.Id, text)
 				self:GetParent():Hide()
 			end,
+			--- @param self StaticPopupTemplate
 			OnShow = function(self)
-				self.editBox:SetText(cat.Name)
+				self:GetEditBox():SetText(cat.Name)
 			end,
 			whileDead = true,
 			hasEditBox = true,
+			--- @param self StaticPopupTemplate_EditBox
 			EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
 			hideOnEscape = true,
 			preferredIndex = 3
@@ -738,7 +752,7 @@ function AngryAssign:DisplayPage( id )
 	self:TouchPage( id )
 	self:SendPage( id, true )
 	self:SendDisplay( id, true )
-	
+
 	if AngryAssign_State.displayed ~= id then
 		AngryAssign_State.displayed = id
 		AngryAssign:UpdateDisplayed()
@@ -746,7 +760,7 @@ function AngryAssign:DisplayPage( id )
 		AngryAssign:UpdateTree()
 		AngryAssign:DisplayUpdateNotification()
 	end
-	
+
 	return true
 end
 
@@ -778,7 +792,7 @@ local function AngryAssign_RestorePage(widget, event, value)
 	if not AngryAssign.window then return end
 	local page = AngryAssign_Pages[AngryAssign:SelectedId()]
 	if not page or not page.Backup then return end
-	
+
 	AngryAssign.window.text:SetText( page.Backup )
 	AngryAssign.window.text.button:Enable()
 	AngryAssign_TextChanged(widget, event, value)
@@ -797,7 +811,7 @@ local function AngryAssign_CategoryMenuList(entryId, parentId)
 	end
 
 	for _, cat in pairs(AngryAssign_Categories) do
-		if cat.Id ~= -entryId and (parentId or not cat.CategoryId) and (not parentId or cat.CategoryId == parentId) then 
+		if cat.Id ~= -entryId and (parentId or not cat.CategoryId) and (not parentId or cat.CategoryId == parentId) then
 			local subMenu = AngryAssign_CategoryMenuList(entryId, cat.Id)
 			table.insert(categories, { text = cat.Name, value = cat.Id, menuList = subMenu, hasArrow = (subMenu ~= nil), checked = (checkedId == cat.Id), func = AngryAssign_AssignCategory, arg1 = entryId, arg2 = cat.Id })
 		end
@@ -970,7 +984,7 @@ function AngryAssign:CreateWindow()
 	button_revert:SetCallback("OnClick", AngryAssign_RevertPage)
 	tree:AddChild(button_revert)
 	window.button_revert = button_revert
-	
+
 	local button_restore = AceGUI:Create("Button")
 	button_restore:SetText("Restore")
 	button_restore:SetWidth(80)
@@ -980,7 +994,7 @@ function AngryAssign:CreateWindow()
 	button_restore:SetCallback("OnClick", AngryAssign_RestorePage)
 	tree:AddChild(button_restore)
 	window.button_restore = button_restore
-	
+
 	local button_output = AceGUI:Create("Button")
 	button_output:SetText("Output")
 	button_output:SetWidth(80)
@@ -1044,7 +1058,7 @@ function AngryAssign:CreateWindow()
 
 	self:UpdateSelected(true)
 	self:UpdateMedia()
-	
+
 	--self:CreateIconPicker()
 end
 
@@ -1142,7 +1156,7 @@ function AngryAssign:CreateIconPicker()
 	local group = AceGUI:Create("SimpleGroup")
 	group:SetLayout("Flow")
 	group:SetFullWidth(true)
-	for i = 8, 1, -1 do 
+	for i = 8, 1, -1 do
 		group:AddChild( self:CreateIconButton("{rt"..i.."}", "Interface\\TargetingFrame\\UI-RaidTargetingIcon_"..i) )
 	end
 	group:AddChild( self:CreateIconButton("{bl}", "Interface\\Icons\\SPELL_Nature_Bloodlust") )
@@ -1302,7 +1316,7 @@ function AngryAssign:SetSelectedId(selectedId)
 				table.insert(path, -cat.Id)
 				if cat.CategoryId then
 					cat = AngryAssign_Categories[cat.CategoryId]
-				else 
+				else
 					cat = nil
 				end
 			end
@@ -1529,26 +1543,26 @@ end
 
 function AngryAssign:IsGuildRaid()
 	local leader = self:GetRaidLeader()
-	
+
 	if self:IsGuildOfficer(leader) then
 		return true
 	end
-	
+
 	return false
 end
-	
-	
+
+
 function AngryAssign:IsValidRaid()
 	if self:GetConfig('allowall') then
 		return true
 	end
-	
+
 	local leader = self:GetRaidLeader()
-	
+
 	if self:IsGuildOfficer(leader) then
 		return true
 	end
-	
+
 	for token in string.gmatch( AngryAssign:GetConfig('allowplayers') , "[^%s!#$%%&()*+,./:;<=>?@\\^_{|}~%[%]]+") do
 		if leader and EnsureUnitFullName(token):lower() == EnsureUnitFullName(leader):lower() then
 			return true
@@ -1558,7 +1572,7 @@ function AngryAssign:IsValidRaid()
 	if self:IsPlayerRaidLeader() then
 		return true
 	end
-	
+
 	return false
 end
 
@@ -1606,14 +1620,14 @@ function AngryAssign:ResetPosition()
 	AngryAssign_State.display = {}
 	AngryAssign_State.directionUp = false
 	AngryAssign_State.locked = false
-	
+
 	self.display_text:Show()
 	self.mover:Show()
 	self.frame:SetWidth(300)
-	
+
 	lwin.RegisterConfig(self.frame, AngryAssign_State.display)
 	lwin.RestorePosition(self.frame)
-	
+
 	self:UpdateDirection()
 end
 
@@ -1663,7 +1677,7 @@ function AngryAssign:CreateDisplay()
 		frame:SetMinResize(180,1)
 		frame:SetMaxResize(830,1)
 	end
-	frame:SetFrameStrata("MEDIUM")	
+	frame:SetFrameStrata("MEDIUM")
 	self.frame = frame
 
 	lwin.RegisterConfig(frame, AngryAssign_State.display)
@@ -1838,7 +1852,7 @@ function AngryAssign:UpdateMedia()
 	local fontName = LSM:Fetch("font", AngryAssign:GetConfig('fontName'))
 	local fontHeight = AngryAssign:GetConfig('fontHeight')
 	local fontFlags = AngryAssign:GetConfig('fontFlags')
-	
+
 	self.display_text:SetTextColor( HexToRGB(self:GetConfig('color')) )
 	self.display_text:SetFont(fontName, fontHeight, fontFlags)
 	self.display_text:SetSpacing( AngryAssign:GetConfig('lineSpacing') )
@@ -1860,7 +1874,7 @@ end
 local updateFlasher, updateFlasher2 = nil, nil
 function AngryAssign:DisplayUpdateNotification()
 	if updateFlasher == nil then
-		updateFlasher = self.display_glow:CreateAnimationGroup() 
+		updateFlasher = self.display_glow:CreateAnimationGroup()
 
 		-- Flashing in
 		local fade1 = updateFlasher:CreateAnimation("Alpha")
@@ -1880,7 +1894,7 @@ function AngryAssign:DisplayUpdateNotification()
 		fade2:SetOrder(3)
 	end
 	if updateFlasher2 == nil then
-		updateFlasher2 = self.display_glow2:CreateAnimationGroup() 
+		updateFlasher2 = self.display_glow2:CreateAnimationGroup()
 
 		-- Flashing in
 		local fade1 = updateFlasher2:CreateAnimation("Alpha")
@@ -1938,7 +1952,7 @@ function AngryAssign:UpdateDisplayed()
 			end
 		end
 		local highlightHex = self:GetConfig('highlightColor')
-		
+
 		text = text:gsub("||", "|")
 			:gsub(ci_pattern('|cblue'), "|cff00cbf4")
 			:gsub(ci_pattern('|cgreen'), "|cff0adc00")
@@ -1997,19 +2011,19 @@ function AngryAssign:UpdateDisplayed()
 			:gsub(ci_pattern('{paladin}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:32:48|t")
 			:gsub(ci_pattern('{druid}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:48:64:0:16|t")
 			:gsub(ci_pattern('{shaman}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:16:32|t")
-		
-        if not isClassicVanilla then
-            text = text:gsub(ci_pattern('{hero}'), "{heroism}")
-                :gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
-                :gsub(ci_pattern('{bloodlust}'), "{bl}")
-                :gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
+
+		if not isClassicVanilla then
+			text = text:gsub(ci_pattern('{hero}'), "{heroism}")
+				:gsub(ci_pattern('{heroism}'), "|TInterface\\Icons\\ABILITY_Shaman_Heroism:0|t")
+				:gsub(ci_pattern('{bloodlust}'), "{bl}")
+				:gsub(ci_pattern('{bl}'), "|TInterface\\Icons\\SPELL_Nature_Bloodlust:0|t")
 
 			if not isClassicTBC then
 				text = text:gsub(ci_pattern('|cdk'), "|cdeathknight")
-                	:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
+					:gsub(ci_pattern('|cdeathknight'), "|cffc41f3b")
 					:gsub(ci_pattern('{dk}'), "{deathknight}")
 					:gsub(ci_pattern('{deathknight}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:16:32:32:48|t")
-						
+
 				if not isClassicWrath then
 					text = text:gsub(ci_pattern('|cmonk'), "|cff00ff96")
 						:gsub(ci_pattern('|cdh'), "|cdemonhunter")
@@ -2027,8 +2041,8 @@ function AngryAssign:UpdateDisplayed()
 						:gsub(ci_pattern('{evoker}'), "|TInterface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES:0:0:0:0:64:64:0:16:48:64|t")
 				end
 			end
-        end
-		
+		end
+
 
 		self.display_text:Clear()
 		local lines = { strsplit("\n", text) }
@@ -2037,7 +2051,7 @@ function AngryAssign:UpdateDisplayed()
 			local line
 			if AngryAssign_State.directionUp then
 				line = lines[i]
-			else 
+			else
 				line = lines[lines_count - i + 1]
 			end
 			if line == "" then line = " " end
@@ -2127,7 +2141,7 @@ function AngryAssign:OutputDisplayed(id)
 					:gsub(ci_pattern('|cdeathknight'), "")
 					:gsub(ci_pattern('{dk}'), "{deathknight}")
 					:gsub(ci_pattern('{deathknight}'), LOCALIZED_CLASS_NAMES_MALE["DEATHKNIGHT"])
-						
+
 				if not isClassicWrath then
 					output = output:gsub(ci_pattern('|cmonk'), "")
 						:gsub(ci_pattern('|cdh'), "|cdemonhunter")
@@ -2139,16 +2153,16 @@ function AngryAssign:OutputDisplayed(id)
 						:gsub(ci_pattern('{journal%s+(%d+)}'), function(id)
 							return C_EncounterJournal.GetSectionInfo(id) and C_EncounterJournal.GetSectionInfo(id).link
 						end)
-                        :gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
-						:gsub(ci_pattern('{dh}'), "{demonhunter}")						
-                        :gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
+						:gsub(ci_pattern('{monk}'), LOCALIZED_CLASS_NAMES_MALE["MONK"])
+						:gsub(ci_pattern('{dh}'), "{demonhunter}")
+						:gsub(ci_pattern('{demonhunter}'), LOCALIZED_CLASS_NAMES_MALE["DEMONHUNTER"])
 						:gsub(ci_pattern('{evoker}'), LOCALIZED_CLASS_NAMES_MALE["EVOKER"])
 				end
 			end
-        end
+		end
 
-        output = output:gsub(ci_pattern('|c%w?%w?%w?%w?%w?%w?%w?%w?'), "")
-		
+		output = output:gsub(ci_pattern('|c%w?%w?%w?%w?%w?%w?%w?%w?'), "")
+
 		local lines = { strsplit("\n", output) }
 		for _, line in ipairs(lines) do
 			if line ~= "" then
@@ -2228,7 +2242,7 @@ function AngryAssign:OnInitialize()
 
 	local ver = AngryAssign_Version
 	if ver:sub(1,1) == "@" then ver = "dev" end
-	
+
 	local options = {
 		name = "Angry Assignments "..ver,
 		handler = AngryAssign,
@@ -2313,7 +2327,7 @@ function AngryAssign:OnInitialize()
 					local result = self:DisplayPageByName( val:trim() )
 					if result == false then
 						self:Print( RED_FONT_COLOR_CODE .. "A page with the name \""..val:trim().."\" could not be found.|r" )
-					elseif not result then 
+					elseif not result then
 						self:Print( RED_FONT_COLOR_CODE .. "You don't have permission to send a page.|r" )
 					end
 				end
@@ -2335,7 +2349,7 @@ function AngryAssign:OnInitialize()
 				order = 20,
 				name = "Backup Pages",
 				desc = "Creates a backup of all pages with their current contents",
-				func = function() 
+				func = function()
 					self:CreateBackup()
 					self:Print("Created a backup of all pages.")
 				end
@@ -2357,7 +2371,7 @@ function AngryAssign:OnInitialize()
 				func = function()
 					if (IsInRaid() or IsInGroup()) then
 						versionList = {} -- start with a fresh version list, when displaying it
-						self:SendOutMessage({ "VER_QUERY" }) 
+						self:SendOutMessage({ "VER_QUERY" })
 						self:ScheduleTimer("VersionCheckOutput", 3)
 						self:Print("Version check running...")
 					else
@@ -2372,7 +2386,7 @@ function AngryAssign:OnInitialize()
 				desc = "Shows/hides the display mover (also available in game keybindings)",
 				func = function() self:ToggleLock() end
 			},
-			config = { 
+			config = {
 				type = "group",
 				order = 5,
 				name = "General",
@@ -2456,7 +2470,7 @@ function AngryAssign:OnInitialize()
 					}
 				}
 			},
-			font = { 
+			font = {
 				type = "group",
 				order = 6,
 				name = "Font",
@@ -2479,7 +2493,7 @@ function AngryAssign:OnInitialize()
 						type = "range",
 						order = 2,
 						name = "Size",
-						desc = function() 
+						desc = function()
 							return "Sets the font height used to display a page"
 						end,
 						min = 6,
@@ -2562,7 +2576,7 @@ function AngryAssign:OnInitialize()
 					},
 				}
 			},
-			permissions = { 
+			permissions = {
 				type = "group",
 				order = 7,
 				name = "Permissions",
@@ -2598,22 +2612,22 @@ function AngryAssign:OnInitialize()
 	self:RegisterChatCommand("aa", "ChatCommand")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("AngryAssign", options)
 
-	blizOptionsPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Assignments")
+	blizOptionsPanel, self.categoryID = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AngryAssign", "Angry Assignments")
 	blizOptionsPanel.default = function() self:RestoreDefaults() end
 end
 
 function AngryAssign:ChatCommand(input)
-  if not input or input:trim() == "" then
-	Settings.OpenToCategory("Angry Assignments")
-  else
-    LibStub("AceConfigCmd-3.0").HandleCommand(self, "aa", "AngryAssign", input)
-  end
+	if not input or input:trim() == "" then
+		Settings.OpenToCategory(self.categoryID)
+	else
+		LibStub("AceConfigCmd-3.0").HandleCommand(self, "aa", "AngryAssign", input)
+	end
 end
 
 function AngryAssign:OnEnable()
 	self:ResetOfficerRank()
 	self:CreateDisplay()
-	
+
 	self:ScheduleTimer("AfterEnable", 4)
 
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
